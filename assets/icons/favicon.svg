@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g fill="#A4485F">
+    <path d="M32 32c-7-8-7-20 0-27 7 7 7 19 0 27z" opacity=".75"/>
+    <path d="M32 32c-7-8-7-20 0-27 7 7 7 19 0 27z" transform="rotate(72 32 32)" opacity=".75"/>
+    <path d="M32 32c-7-8-7-20 0-27 7 7 7 19 0 27z" transform="rotate(144 32 32)" opacity=".75"/>
+    <path d="M32 32c-7-8-7-20 0-27 7 7 7 19 0 27z" transform="rotate(216 32 32)" opacity=".75"/>
+    <path d="M32 32c-7-8-7-20 0-27 7 7 7 19 0 27z" transform="rotate(288 32 32)" opacity=".75"/>
+  </g>
+  <circle cx="32" cy="32" r="3.5" fill="#4B2433"/>
+</svg>

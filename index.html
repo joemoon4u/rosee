@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- EDIT: brand name and description -->
+  <title>Rosée Skin Atelier — Independent skin consultations in Sydney</title>
+  <meta name="description" content="Private, unhurried skin consultations in a Sydney home studio or online. Independent advice with no brands, no commissions and a written ritual made for you.">
+  <meta name="theme-color" content="#F8ECEB">
+  <meta name="color-scheme" content="light">
+
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/icons/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Rosée">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <!-- EDIT: once the domain is live, make og:image an absolute URL, e.g. https://yourdomain.com.au/og-image.png -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Rosée Skin Atelier">
+  <meta property="og:description" content="Unhurried, independent skin consultations in Sydney. Nothing to sell, everything explained.">
+  <meta property="og:image" content="/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="preload" href="/assets/fonts/fraunces-latin-full-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/figtree-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <script src="/assets/js/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header" id="top">
+    <div class="wrap header-inner">
+      <a class="brand" href="#top" aria-label="Rosée Skin Atelier, back to top">
+        <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+          <g fill="currentColor">
+            <path d="M20 20c-4-5-4-12 0-16 4 4 4 11 0 16z" opacity=".55"/>
+            <path d="M20 20c-4-5-4-12 0-16 4 4 4 11 0 16z" transform="rotate(72 20 20)" opacity=".55"/>
+            <path d="M20 20c-4-5-4-12 0-16 4 4 4 11 0 16z" transform="rotate(144 20 20)" opacity=".55"/>
+            <path d="M20 20c-4-5-4-12 0-16 4 4 4 11 0 16z" transform="rotate(216 20 20)" opacity=".55"/>
+            <path d="M20 20c-4-5-4-12 0-16 4 4 4 11 0 16z" transform="rotate(288 20 20)" opacity=".55"/>
+          </g>
+        </svg>
+        <span class="brand-name">Rosée</span>
+        <span class="brand-sub">Skin Atelier</span>
+      </a>
+
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+
+      <nav class="site-nav" id="site-nav" aria-label="Main">
+        <a href="#philosophy">Philosophy</a>
+        <a href="#consultations">Consultations</a>
+        <a href="#letter">About</a>
+        <a href="#reading">Reading room</a>
+        <a class="nav-cta" href="#book">Book a consultation</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <h1 class="hero-title"><span class="line">Your skin has a story.</span> <span class="line">I’d love to hear it.</span></h1>
+          <p class="hero-lede">
+            Private, unhurried skin consultations in my Sydney home studio or online.
+            I look closely, listen properly, and give you a written ritual you understand,
+            with nothing to sell at the end of it.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#book">Book a consultation</a>
+            <a class="btn btn-quiet" href="#consultations">See consultations</a>
+          </div>
+          <p class="hero-promise">Independent. No brand partnerships, no commissions, ever.</p>
+        </div>
+
+        <figure class="hero-art" aria-hidden="true">
+          <div class="bloom-frame">
+            <svg class="bloom" viewBox="0 0 400 400" role="presentation">
+              <defs>
+                <path id="petal-l" d="M200 200 C138 168 112 66 166 34 C184 24 216 24 234 34 C288 66 262 168 200 200 Z"/>
+                <path id="petal-m" d="M200 200 C156 172 140 102 176 78 C190 69 210 69 224 78 C260 102 244 172 200 200 Z"/>
+                <path id="petal-s" d="M200 200 C172 182 164 140 186 124 C194 118 206 118 214 124 C236 140 228 182 200 200 Z"/>
+                <radialGradient id="dew" cx="35%" cy="35%" r="65%">
+                  <stop offset="0" stop-color="#fff" stop-opacity=".95"/>
+                  <stop offset=".6" stop-color="#fff" stop-opacity=".25"/>
+                  <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+                </radialGradient>
+                <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0" stop-color="#F3C9CF"/>
+                  <stop offset="1" stop-color="#F3C9CF" stop-opacity="0"/>
+                </radialGradient>
+              </defs>
+
+              <circle cx="200" cy="200" r="190" fill="url(#glow)"/>
+
+              <g class="leaf leaf-1"><path d="M28 372 C70 286 146 258 198 266 C166 318 100 376 28 372 Z"/><path class="leaf-vein" d="M36 368 C88 320 146 286 194 268"/></g>
+              <g class="leaf leaf-2"><path d="M378 360 C346 288 270 262 212 274 C244 324 310 366 378 360 Z"/><path class="leaf-vein" d="M370 356 C320 314 262 286 216 276"/></g>
+
+              <g class="ring ring-1">
+                <use href="#petal-l" transform="rotate(0 200 200)"/>
+                <use href="#petal-l" transform="rotate(45 200 200)"/>
+                <use href="#petal-l" transform="rotate(90 200 200)"/>
+                <use href="#petal-l" transform="rotate(135 200 200)"/>
+                <use href="#petal-l" transform="rotate(180 200 200)"/>
+                <use href="#petal-l" transform="rotate(225 200 200)"/>
+                <use href="#petal-l" transform="rotate(270 200 200)"/>
+                <use href="#petal-l" transform="rotate(315 200 200)"/>
+              </g>
+              <g class="ring ring-2">
+                <use href="#petal-m" transform="rotate(22 200 200)"/>
+                <use href="#petal-m" transform="rotate(82 200 200)"/>
+                <use href="#petal-m" transform="rotate(142 200 200)"/>
+                <use href="#petal-m" transform="rotate(202 200 200)"/>
+                <use href="#petal-m" transform="rotate(262 200 200)"/>
+                <use href="#petal-m" transform="rotate(322 200 200)"/>
+              </g>
+              <g class="ring ring-3">
+                <use href="#petal-s" transform="rotate(10 200 200)"/>
+                <use href="#petal-s" transform="rotate(82 200 200)"/>
+                <use href="#petal-s" transform="rotate(154 200 200)"/>
+                <use href="#petal-s" transform="rotate(226 200 200)"/>
+                <use href="#petal-s" transform="rotate(298 200 200)"/>
+              </g>
+              <g class="heart">
+                <circle cx="200" cy="200" r="15"/>
+                <circle class="stamen" cx="194" cy="195" r="2.2"/>
+                <circle class="stamen" cx="206" cy="197" r="2"/>
+                <circle class="stamen" cx="199" cy="206" r="1.8"/>
+              </g>
+              <g class="dewdrops">
+                <circle cx="148" cy="96" r="7" fill="url(#dew)"/>
+                <circle cx="292" cy="236" r="5" fill="url(#dew)"/>
+                <circle cx="236" cy="132" r="3.5" fill="url(#dew)"/>
+              </g>
+            </svg>
+          </div>
+          <figcaption class="hero-caption">Rosée, French for morning dew</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- PHILOSOPHY -->
+    <section class="section philosophy" id="philosophy" aria-labelledby="philosophy-title">
+      <div class="wrap split">
+        <div class="split-aside sticky">
+          <h2 class="section-title" id="philosophy-title">What I believe about skin</h2>
+          <p class="section-lede">
+            Good skin care isn’t a shopping list. It’s a relationship with the body you live in,
+            and like any relationship it does best with attention, patience and honesty.
+          </p>
+        </div>
+
+        <ul class="beliefs">
+          <li class="belief">
+            <h3>Listen before you layer</h3>
+            <p>Sleep, stress, seasons, hormones and habits all show up on your face. We begin with your story, not with a product list.</p>
+          </li>
+          <li class="belief">
+            <h3>Protect the barrier first</h3>
+            <p>Your skin’s outermost layer keeps water in and irritants out. When it’s calm and comfortable, nearly everything else gets easier.</p>
+          </li>
+          <li class="belief">
+            <h3>Fewer things, chosen well</h3>
+            <p>A beautiful routine can be three steps: cleanse, moisturise, protect. Anything beyond that has to earn its place on your shelf.</p>
+          </li>
+          <li class="belief">
+            <h3>Sun care, softly and always</h3>
+            <p>Here in Australia, sunscreen belongs in your morning routine whenever the UV is 3 or above, not only on beach days.</p>
+          </li>
+          <li class="belief">
+            <h3>Patience is an ingredient</h3>
+            <p>Most products need around six weeks to show you what they can do. We change one thing at a time, so we always know what’s working.</p>
+          </li>
+          <li class="belief">
+            <h3>Every recommendation comes with a why</h3>
+            <p>You’ll know what each product does, why I chose it for you, and the signs that mean stop. No mystery and no pressure.</p>
+          </li>
+          <li class="belief">
+            <h3>Knowing where advice ends</h3>
+            <p>I’m a skin consultant, not a doctor. If I notice a changing spot or anything that needs medical care, I’ll tell you gently and clearly, and suggest you see your GP or a dermatologist.</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- PROMISE -->
+    <section class="promise" aria-label="Independence promise">
+      <div class="wrap">
+        <p class="promise-text">I don’t sell products, and no brand pays me. The only thing I’m invested in is your skin.</p>
+      </div>
+    </section>
+
+    <!-- HOW IT UNFOLDS -->
+    <section class="section unfold" aria-labelledby="unfold-title">
+      <div class="wrap">
+        <h2 class="section-title" id="unfold-title">How a consultation unfolds</h2>
+        <ol class="steps">
+          <li class="step">
+            <h3>Request a time</h3>
+            <p>Choose a consultation and tell me a little about yourself. I reply personally within one business day.</p>
+          </li>
+          <li class="step">
+            <h3>We sit together</h3>
+            <p>In my home studio or over video. Bring the products you use now and we’ll look at each one together.</p>
+          </li>
+          <li class="step">
+            <h3>Your written ritual</h3>
+            <p>Within 48 hours you receive your morning and evening ritual: every step, every product, and the reason for it.</p>
+          </li>
+          <li class="step">
+            <h3>We revisit</h3>
+            <p>Skin shifts with seasons and life. Check-ins keep the plan honest and let us adjust as you change.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- CONSULTATIONS -->
+    <!-- EDIT: names, prices and inclusions. Prices are suggestions in AUD. -->
+    <section class="section consultations" id="consultations" aria-labelledby="consult-title">
+      <div class="wrap split">
+        <div class="split-aside sticky">
+          <h2 class="section-title" id="consult-title">Consultations</h2>
+          <p class="section-lede">
+            I keep my diary small on purpose, so every client has my full attention.
+            Each consultation ends with advice you can keep, never a bag of products.
+          </p>
+          <p class="aside-note">Thinking of someone else? Any consultation can be given as a gift. Just mention it in your request.</p>
+        </div>
+
+        <div class="offerings">
+          <article class="offering" id="plan-first-light">
+            <header class="offering-head">
+              <h3 class="offering-name">First Light</h3>
+              <p class="offering-price"><span class="sr-only">Price: </span>$95</p>
+            </header>
+            <p class="offering-meta">45 minutes, online</p>
+            <p class="offering-desc">A gentle first conversation over video. We talk through your skin’s story and your current shelf, and settle on the three changes that will matter most.</p>
+            <ul class="inclusions">
+              <li>Skin story and lifestyle conversation</li>
+              <li>Review of your current products</li>
+              <li>Three priorities, in writing, within 48 hours</li>
+            </ul>
+            <button class="btn btn-outline choose-plan" type="button" data-plan="first-light">Request First Light</button>
+          </article>
+
+          <article class="offering offering-featured" id="plan-the-ritual">
+            <p class="offering-flag">Most chosen</p>
+            <header class="offering-head">
+              <h3 class="offering-name">The Ritual</h3>
+              <p class="offering-price"><span class="sr-only">Price: </span>$240</p>
+            </header>
+            <p class="offering-meta">90 minutes, in my home studio or online</p>
+            <p class="offering-desc">My signature consultation. Unhurried time to look closely at your skin in natural light, understand how you live, and build a ritual that fits your life rather than fighting it.</p>
+            <ul class="inclusions">
+              <li>Close skin observation in natural and magnified light</li>
+              <li>A full shelf edit: keep, pause or let go</li>
+              <li>Written morning and evening ritual with the why behind each step</li>
+              <li>Patch test and introduction plan, one change at a time</li>
+              <li>Two-week check-in message</li>
+            </ul>
+            <button class="btn btn-primary choose-plan" type="button" data-plan="the-ritual">Request The Ritual</button>
+          </article>
+
+          <article class="offering" id="plan-the-season">
+            <header class="offering-head">
+              <h3 class="offering-name">The Season</h3>
+              <p class="offering-price"><span class="sr-only">Price: </span>$620</p>
+            </header>
+            <p class="offering-meta">Three months of guidance</p>
+            <p class="offering-desc">For when you want company on the journey. We begin with The Ritual, then meet regularly as your skin responds, adjusting gently rather than starting over.</p>
+            <ul class="inclusions">
+              <li>Everything in The Ritual</li>
+              <li>Three 30-minute check-ins, a fortnight apart</li>
+              <li>Ritual updates as your skin changes</li>
+              <li>A plan for the change of season</li>
+              <li>Weekday messages for quick questions</li>
+            </ul>
+            <button class="btn btn-outline choose-plan" type="button" data-plan="the-season">Request The Season</button>
+          </article>
+
+          <article class="offering offering-private" id="plan-the-atelier">
+            <header class="offering-head">
+              <h3 class="offering-name">The Atelier</h3>
+              <p class="offering-price"><span class="sr-only">Price: </span>$1,450</p>
+            </header>
+            <p class="offering-meta">Six months, by application, limited to six clients a season</p>
+            <p class="offering-desc">My most personal way of working. Ongoing, one-to-one care for life’s bigger moments, from a wedding or milestone birthday to simply wanting to feel at home in your skin again.</p>
+            <ul class="inclusions">
+              <li>Everything in The Season</li>
+              <li>Monthly in-person sessions</li>
+              <li>A shopping companion, in store or online, with no commissions</li>
+              <li>Skin plan for a wedding, event or milestone</li>
+              <li>First choice of appointment times</li>
+            </ul>
+            <button class="btn btn-outline choose-plan" type="button" data-plan="the-atelier">Apply for The Atelier</button>
+          </article>
+
+          <p class="price-note">Prices in Australian dollars. Nothing is payable until I confirm your appointment.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- LETTER / ABOUT -->
+    <!-- EDIT: replace the portrait placeholder with <img src="/assets/img/portrait.jpg" alt="..."> and personalise the letter. -->
+    <section class="section letter" id="letter" aria-labelledby="letter-title">
+      <div class="wrap letter-grid">
+        <div class="portrait" aria-hidden="true">
+          <svg viewBox="0 0 300 380">
+            <defs>
+              <linearGradient id="portrait-bg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#F3D3D6"/>
+                <stop offset="1" stop-color="#E2AEB8"/>
+              </linearGradient>
+            </defs>
+            <rect width="300" height="380" fill="url(#portrait-bg)"/>
+            <g fill="#FFF9F8" opacity=".55">
+              <path d="M150 190 C120 160 122 100 150 76 C178 100 180 160 150 190 Z"/>
+              <path d="M150 190 C120 160 122 100 150 76 C178 100 180 160 150 190 Z" transform="rotate(72 150 190)"/>
+              <path d="M150 190 C120 160 122 100 150 76 C178 100 180 160 150 190 Z" transform="rotate(144 150 190)"/>
+              <path d="M150 190 C120 160 122 100 150 76 C178 100 180 160 150 190 Z" transform="rotate(216 150 190)"/>
+              <path d="M150 190 C120 160 122 100 150 76 C178 100 180 160 150 190 Z" transform="rotate(288 150 190)"/>
+            </g>
+          </svg>
+        </div>
+
+        <div class="letter-body">
+          <h2 class="section-title" id="letter-title">A letter, before we meet</h2>
+          <p>Hello, and welcome.</p>
+          <p>
+            For many of us, the bathroom shelf is where hope goes to wait. Half-finished serums,
+            the cream a friend swore by, the bottle a counter promised would change everything.
+            I started Rosée because I wanted to offer something I couldn’t find myself:
+            an hour of someone’s full attention, with nothing to sell at the end of it.
+          </p>
+          <p>
+            When we sit together, I’ll ask about your life as much as your skin. I’ll look closely,
+            explain what I see in plain words, and give you a ritual you can understand and keep.
+            If something needs a doctor’s eye, I’ll say so kindly and clearly. That’s part of caring for you too.
+          </p>
+          <p>
+            I see a small number of clients so each one gets my very best. I’d love for you to be one of them.
+          </p>
+          <p class="letter-close">With warmth,</p>
+          <!-- EDIT: founder's first name -->
+          <p class="signature">Your Name</p>
+          <!-- EDIT: add a credentials line once complete, e.g. <p class="credentials">Certificate IV in Beauty Therapy, TAFE NSW</p> -->
+        </div>
+      </div>
+    </section>
+
+    <!-- READING ROOM -->
+    <section class="section reading" id="reading" aria-labelledby="reading-title">
+      <div class="wrap">
+        <div class="reading-head">
+          <h2 class="section-title" id="reading-title">The reading room</h2>
+          <p class="section-lede">Trustworthy sources I share with clients. None of them are trying to sell you anything either.</p>
+        </div>
+
+        <div class="shelves">
+          <section class="shelf" aria-labelledby="shelf-sun">
+            <h3 class="shelf-title" id="shelf-sun">Sun, every day</h3>
+            <ul class="reads">
+              <li>
+                <a class="read-link" href="https://www.cancer.org.au/cancer-information/causes-and-prevention/sun-safety/sunscreen/advice" target="_blank" rel="noopener noreferrer">How to choose, apply and store sunscreen</a>
+                <p class="read-source">Cancer Council Australia</p>
+                <p class="read-note">A clear, practical guide to getting real protection from the sunscreen you already own, including a quick patch test for sensitive skin.</p>
+              </li>
+              <li>
+                <a class="read-link" href="https://www.cancer.org.au/cancer-information/causes-and-prevention/sun-safety/sunscreen/basics" target="_blank" rel="noopener noreferrer">Sunscreen basics and SPF explained</a>
+                <p class="read-source">Cancer Council Australia</p>
+                <p class="read-note">What SPF numbers and “broad spectrum” actually mean, and how sunscreens are regulated here.</p>
+              </li>
+              <li>
+                <a class="read-link" href="https://www.dermcoll.edu.au/wp-content/uploads/2022/10/ACD-Fact-Sheet-How-do-I-protect-my-skin-from-the-sun-October-2022.pdf" target="_blank" rel="noopener noreferrer">How do I protect my skin from the sun?</a>
+                <p class="read-source">Australasian College of Dermatologists, fact sheet (PDF)</p>
+                <p class="read-note">The dermatologists’ own guidance on daily sun protection and how sun shows up as ageing over time.</p>
+              </li>
+              <li>
+                <a class="read-link" href="https://cancer.org.au/blog/young-or-old-theres-nothing-healthy-about-a-tan" target="_blank" rel="noopener noreferrer">There’s nothing healthy about a tan</a>
+                <p class="read-source">Cancer Council Australia and the Australasian College of Dermatologists</p>
+                <p class="read-note">A warm reminder to love the tone you were born with, whatever it is.</p>
+              </li>
+            </ul>
+          </section>
+
+          <section class="shelf" aria-labelledby="shelf-barrier">
+            <h3 class="shelf-title" id="shelf-barrier">Barrier and moisture</h3>
+            <ul class="reads">
+              <li>
+                <a class="read-link" href="https://www.dermnetnz.org/topics/emollients-and-moisturisers/" target="_blank" rel="noopener noreferrer">Emollients and moisturisers</a>
+                <p class="read-source">DermNet</p>
+                <p class="read-note">How moisturisers work, why texture matters, and a calm word about anti-ageing marketing claims.</p>
+              </li>
+              <li>
+                <a class="read-link" href="https://www.dermnetnz.org/topics/barrier-cream" target="_blank" rel="noopener noreferrer">The skin barrier and barrier creams</a>
+                <p class="read-source">DermNet</p>
+                <p class="read-note">A short, clear explanation of what your skin barrier is and what happens when it’s disrupted.</p>
+              </li>
+              <li>
+                <a class="read-link" href="https://karger.com/spp/article/36/4/174/863006/The-Skin-Barrier-and-Moisturization" target="_blank" rel="noopener noreferrer">The skin barrier and moisturization</a>
+                <p class="read-source">Skin Pharmacology and Physiology, research review</p>
+                <p class="read-note">For the curious: the science of the barrier’s four layers and how moisturisers help each one recover.</p>
+              </li>
+            </ul>
+          </section>
+
+          <section class="shelf" aria-labelledby="shelf-simple">
+            <h3 class="shelf-title" id="shelf-simple">Keeping it simple</h3>
+            <ul class="reads">
+              <li>
+                <a class="read-link" href="https://aad.org/news/skin-care-tips-that-dermatologists-use-themselves" target="_blank" rel="noopener noreferrer">Skin care tips dermatologists use themselves</a>
+                <p class="read-source">American Academy of Dermatology</p>
+                <p class="read-note">Proof that the people who know skin best keep their own routines short and consistent.</p>
+              </li>
+              <li>
+                <a class="read-link" href="https://www.hcf.com.au/health-agenda/body-mind/physical-health/skin-care-tips-how-to-get-healthy-skin-without-expensive-products" target="_blank" rel="noopener noreferrer">Good habits for healthy skin, without pricey products</a>
+                <p class="read-source">HCF Health Agenda, with an Australian dermatologist</p>
+                <p class="read-note">Five everyday habits that matter more than anything you can buy.</p>
+              </li>
+            </ul>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <!-- BOOKING -->
+    <section class="section book" id="book" aria-labelledby="book-title">
+      <div class="wrap book-grid">
+        <div class="book-intro sticky">
+          <h2 class="section-title" id="book-title">Request a consultation</h2>
+          <p class="section-lede">Tell me a little about you and when suits. I read every request myself and reply personally.</p>
+          <ul class="next-steps">
+            <li>I’ll reply within one business day to confirm a time.</li>
+            <li>For studio visits, I share the address when I confirm.</li>
+            <li>Nothing is payable until your appointment is confirmed.</li>
+          </ul>
+          <!-- EDIT: contact email -->
+          <p class="contact-line">Prefer email? Write to <a href="mailto:hello@rosee-skin.example">hello@rosee-skin.example</a></p>
+        </div>
+
+        <div class="form-card">
+          <form id="booking-form" class="booking-form" novalidate>
+            <div class="field">
+              <label for="f-name">Your name</label>
+              <input id="f-name" name="name" type="text" autocomplete="name" required minlength="2" maxlength="80">
+              <p class="field-error" id="err-name" hidden></p>
+            </div>
+
+            <div class="field-row">
+              <div class="field">
+                <label for="f-email">Email</label>
+                <input id="f-email" name="email" type="email" autocomplete="email" required maxlength="254" inputmode="email">
+                <p class="field-error" id="err-email" hidden></p>
+              </div>
+              <div class="field">
+                <label for="f-phone">Mobile <span class="optional">(optional)</span></label>
+                <input id="f-phone" name="phone" type="tel" autocomplete="tel" maxlength="20" inputmode="tel" pattern="[0-9 +()\-]{6,20}">
+                <p class="field-error" id="err-phone" hidden></p>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="f-plan">Consultation</label>
+              <select id="f-plan" name="plan" required>
+                <option value="">Choose a consultation</option>
+                <option value="first-light">First Light, 45 minutes online ($95)</option>
+                <option value="the-ritual">The Ritual, 90 minutes ($240)</option>
+                <option value="the-season">The Season, three months ($620)</option>
+                <option value="the-atelier">The Atelier, six months ($1,450)</option>
+                <option value="not-sure">I’m not sure yet, please advise</option>
+              </select>
+              <p class="field-error" id="err-plan" hidden></p>
+            </div>
+
+            <fieldset class="field">
+              <legend>Where would you like to meet?</legend>
+              <div class="chips">
+                <label class="chip"><input type="radio" name="format" value="studio" checked><span>In the home studio</span></label>
+                <label class="chip"><input type="radio" name="format" value="online"><span>Online, by video</span></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="field">
+              <legend>Days that suit you</legend>
+              <div class="chips">
+                <label class="chip"><input type="checkbox" name="days" value="Mon"><span>Mon</span></label>
+                <label class="chip"><input type="checkbox" name="days" value="Tue"><span>Tue</span></label>
+                <label class="chip"><input type="checkbox" name="days" value="Wed"><span>Wed</span></label>
+                <label class="chip"><input type="checkbox" name="days" value="Thu"><span>Thu</span></label>
+                <label class="chip"><input type="checkbox" name="days" value="Fri"><span>Fri</span></label>
+                <label class="chip"><input type="checkbox" name="days" value="Sat"><span>Sat</span></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="field">
+              <legend>Times that suit you</legend>
+              <div class="chips">
+                <label class="chip"><input type="checkbox" name="times" value="Morning"><span>Morning</span></label>
+                <label class="chip"><input type="checkbox" name="times" value="Afternoon"><span>Afternoon</span></label>
+                <label class="chip"><input type="checkbox" name="times" value="Evening"><span>Evening</span></label>
+              </div>
+            </fieldset>
+
+            <div class="field">
+              <label for="f-message">What would you love to feel about your skin?</label>
+              <textarea id="f-message" name="message" rows="4" maxlength="600" aria-describedby="message-help message-count"></textarea>
+              <p class="field-help" id="message-help">A sentence or two is plenty. Please keep medical details for our conversation.</p>
+              <p class="field-count" id="message-count" aria-live="polite">0 / 600</p>
+            </div>
+
+            <!-- Honeypot: hidden from people, tempting to bots -->
+            <div class="hp" aria-hidden="true">
+              <label for="f-website">Leave this empty</label>
+              <input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off">
+            </div>
+
+            <div class="field consent">
+              <label class="check">
+                <input id="f-consent" name="consent" type="checkbox" required>
+                <span>I understand this is skin advice, not medical care, and I’m happy for my details to be used to arrange my consultation, as described in the <a href="#privacy">privacy note</a>.</span>
+              </label>
+              <p class="field-error" id="err-consent" hidden></p>
+            </div>
+
+            <button class="btn btn-primary btn-submit" type="submit">Send my request</button>
+            <div class="form-status" id="form-status" role="status" aria-live="polite" hidden></div>
+          </form>
+
+          <div class="form-success" id="form-success" tabindex="-1" hidden>
+            <svg viewBox="0 0 60 60" aria-hidden="true" class="success-mark">
+              <g fill="currentColor">
+                <path d="M30 30c-6-7-6-18 0-24 6 6 6 17 0 24z" opacity=".5"/>
+                <path d="M30 30c-6-7-6-18 0-24 6 6 6 17 0 24z" transform="rotate(72 30 30)" opacity=".5"/>
+                <path d="M30 30c-6-7-6-18 0-24 6 6 6 17 0 24z" transform="rotate(144 30 30)" opacity=".5"/>
+                <path d="M30 30c-6-7-6-18 0-24 6 6 6 17 0 24z" transform="rotate(216 30 30)" opacity=".5"/>
+                <path d="M30 30c-6-7-6-18 0-24 6 6 6 17 0 24z" transform="rotate(288 30 30)" opacity=".5"/>
+              </g>
+            </svg>
+            <h3 class="success-title">Request sent. Thank you<span id="success-name"></span>.</h3>
+            <p>Your request is with me now. I’ll reply within one business day to find a time that feels right.</p>
+            <button class="btn btn-quiet" type="button" id="send-another">Send another request</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-grid">
+      <div class="footer-brand">
+        <p class="footer-name">Rosée Skin Atelier</p>
+        <p>Independent skin consultations, Sydney and online.</p>
+        <button class="btn btn-quiet btn-install" type="button" id="install-app" hidden>Add Rosée to your home screen</button>
+      </div>
+
+      <div class="footer-col">
+        <h2 class="footer-title">Skin advice, not medical care</h2>
+        <p>I’m a skincare consultant, not a doctor. I don’t diagnose or treat medical conditions. If I notice anything that needs medical attention, I’ll recommend you see your GP or a dermatologist.</p>
+      </div>
+
+      <div class="footer-col" id="privacy">
+        <h2 class="footer-title">Your privacy</h2>
+        <details class="privacy">
+          <summary>How I look after your details</summary>
+          <p>I collect only what you share in the booking form: your name, contact details, preferred times and a short note. I use it only to arrange and prepare for your consultation.</p>
+          <p>Requests travel securely to my inbox. This site sets no tracking cookies, uses no analytics and loads nothing from third parties.</p>
+          <p>Photos of your skin are taken only with your written consent at the consultation, stored securely, and never shared or used in marketing without your separate permission.</p>
+          <p>You can ask to see or delete your details at any time by emailing me.</p>
+        </details>
+      </div>
+
+      <div class="footer-col">
+        <h2 class="footer-title">Acknowledgement of Country</h2>
+        <p>I acknowledge the Traditional Custodians of the land on which I live and work, and pay my respects to Elders past and present.</p>
+      </div>
+    </div>
+    <div class="wrap footer-base">
+      <p>© <span id="year">2026</span> Rosée Skin Atelier</p>
+      <a href="#top">Back to top</a>
+    </div>
+  </footer>
+</body>
+</html>

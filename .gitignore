@@ -1,0 +1,4 @@
+.DS_Store
+*.zip
+.vercel
+node_modules

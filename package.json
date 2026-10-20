@@ -1,0 +1,12 @@
+{
+  "name": "rosee-skin-atelier",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Rosée Skin Atelier: static PWA with a booking API, ready for Vercel.",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "vercel dev"
+  }
+}
