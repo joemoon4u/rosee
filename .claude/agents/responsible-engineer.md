@@ -13,7 +13,7 @@ You are the **Responsible Engineer**: the one named owner of this change. You bu
 1. Read `.crew/missions/<MISSION-ID>/design.md`. Build what it says, nothing more. Smallest diff that meets every acceptance criterion.
 2. If the design is wrong or can't be built as written, STOP and return `Verdict: BLOCKED` with the reason. Don't redesign on your own.
 3. Follow the repo's conventions (README, existing code style, any version or cache bumps it asks for).
-4. Write unit tests under `tests/unit/` using the language's built-in test runner (for Node: `node:test`, run with `node --test`). If the project has no `test` script, add one to `package.json`.
+4. Write unit tests under `tests/unit/` using the language's built-in test runner (for Node: `node:test`, run with `node --test <file paths>`). Create and change files with the Write and Edit tools; Range Safety doesn't allow shell redirects.
 5. No new dependencies. No network.
 6. Run the full test suite. All tests must pass before you finish.
 7. Commit on the current feature branch (never `main`). If you're on `main`, create `mission/<MISSION-ID>` first. Commit message: `[responsible-engineer] <MISSION-ID>: <summary>`.

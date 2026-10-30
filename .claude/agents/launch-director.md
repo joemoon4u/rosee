@@ -17,7 +17,7 @@ Read `mission.md`, `design.md` and every file in `flight-cards/` in `.crew/missi
 | Design | `design.md` exists; `approvals.md` contains `DESIGN: APPROVED` |
 | Build | Builder card says DONE; commits exist (`git log <base>..HEAD`) |
 | Scope | `git diff --stat <base>..HEAD` matches "Files to change" in the design (mission records under `.crew/missions/` don't count). Flag anything extra. |
-| Test | Re-run the full suite yourself (`npm test` or `node --test`). Every AC has a test. |
+| Test | Re-run every test file yourself with `node --test <file> <file> ...` (list the files; npm scripts aren't allowed). Every AC has a test. |
 | Security | Security card says GO, with no open High or Medium findings |
 | Range Safety | `node .crew/bin/verify-recorder.js` reports OK. Count `RangeSafetyDeny` and `FlightCardMissing` events in `.crew/flight-recorder/*.jsonl` and explain each one. |
 

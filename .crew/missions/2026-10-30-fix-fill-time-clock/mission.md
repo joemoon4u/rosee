@@ -32,7 +32,11 @@
 - Launch re-poll NO-GO, release pack HOLD (bba46b7, flight-cards/07). Guardrail files are Flight Director-owned, so no fix loop was run. Build cycles used: 1 of 3.
 - A shell attempt by the Chief of Staff to save card 07 was blocked by Range Safety (the card text contained a URL-fetching command name); saved with the Write tool instead, no other route tried.
 
+- Strict shell parsing 9427c8f approved (97e4fe8). Security re-review (card 08): both card-06 HIGHs and test gap fixed, but NO-GO on 3 new HIGH bypasses of checkBash (reader-named function, quote-split find/--output, `>&1file`), a pre-existing HIGH (`node --test --import`) and 2 MEDIUMs. Launch re-poll NO-GO, release pack HOLD (9e365f5, card 09). No fix loop (guardrails are Flight Director-owned). Build cycles used: 1 of 3.
+
 ## Risks
+- BLOCKER (card 08): range-safety.js still bypassable: `echo () { ...; }; echo`, `find -ex"ec"` / `--out"put"=`, `>&1file`, and `node --test --import`. Needs Flight Director fix, new policy approval, Security re-review, fresh poll. Security suggests a word-splitting allowlist instead of regex. Alternative: ship the booking fix alone, move guardrail commits to a separate PR.
+- Security flagged harness-neutralized instruction-shaped text in its output (settings-json pattern); treated as data, no action taken.
 - BLOCKER: 9e7de9b range-safety.js bypasses (HIGH): `echo x & curl ...` and `cat <(curl ...)` skip the blocked-command rules. Needs a Flight Director fix, a new policy approval, then re-review.
 - Approval commits (310ad93, 9e7de9b, a16c3cd) are authored by Claude noreply; human authorship of the approval lines can't be verified in git.
 - BLOCKER: commit f5cb1d2 loosened blockedCommands in .crew/policy.json with no recorded approval; approvals.md covers design.md Option A only.

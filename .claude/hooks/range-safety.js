@@ -13,6 +13,10 @@ const { execFileSync } = require("child_process");
 const { PROJECT_DIR, CREW_DIR, STATE_DIR, readStdin, loadPolicy, withLock, summarise, record } = require("./lib");
 
 const input = readStdin();
+if (input === null) {
+  process.stderr.write("RANGE SAFETY NO-GO: hook input was not valid JSON. Failing closed.\n");
+  process.exit(2);
+}
 const role = input.agent_type || null;
 
 function deny(reason) {
@@ -52,8 +56,8 @@ function checkWrite(policy, rules, p) {
   if (policy.protectedPaths.some((pre) => startsWithPrefix(r, pre))) {
     deny(`${r} is a guardrail or audit file. Only the Flight Director (a human) changes it.`);
   }
-  if (policy.humanOnlyFileNames.includes(path.basename(r))) {
-    deny(`${path.basename(r)} records human approvals. Agents can't write it.`);
+  if (policy.protectedFileNames.includes(path.basename(r))) {
+    deny(`${path.basename(r)} is human-only. Approvals, CLAUDE.md and .mcp.json can't be written by agents.`);
   }
   if ((rules.writeDeny || []).some((pre) => startsWithPrefix(r, pre))) {
     deny(`${role} may not change ${r}. Maker and checker stay separate.`);
@@ -61,10 +65,6 @@ function checkWrite(policy, rules, p) {
   if (!(rules.write || []).some((pre) => startsWithPrefix(r, pre))) {
     deny(`${role} can only write to: ${(rules.write || []).join(", ") || "nothing (report-only role)"}. Tried ${r}.`);
   }
-}
-
-function stripQuoted(cmd) {
-  return cmd.replace(/'[^']*'/g, "''").replace(/"(?:[^"\\]|\\.)*"/g, '""');
 }
 
 function currentBranch(cwd) {
@@ -77,94 +77,130 @@ function currentBranch(cwd) {
   }
 }
 
-// fd duplications (2>&1, >&2, <&0) are neither writes nor separators.
-// &> and >& mean "write stdout and stderr", the same as > for our checks; |& is a pipe.
-function normaliseShell(s) {
-  return s.replace(/\d*[<>]&\d+-?/g, " ").replace(/&>/g, ">").replace(/>&/g, ">").replace(/\|&/g, "|");
-}
+/* Shell model: parse, don't guess.
+   A crew command is parsed into simple commands the way bash would split words.
+   Only plain words, quotes and the separators && || ; | are accepted. Anything else
+   ($, backticks, ( ) { } < > &, globs, backslashes, newlines, ~ or # at a word start)
+   is denied. The only redirections allowed throw output away or merge stderr into
+   stdout: 2>&1, >/dev/null, 2>/dev/null. Files are written with the Write or Edit tool. */
+const SAFE_REDIRECT = /^(2>&1|[12]?>\s*\/dev\/null|&>\s*\/dev\/null)(?=[\s;|&]|$)/;
+const ALWAYS_SPECIAL = new Set(["$", "`", "\\", "(", ")", "{", "}", "<", ">", "&", "*", "?", "[", "]", "!", "\n", "\r"]);
+const WORD_START_SPECIAL = new Set(["~", "#"]);
 
-// Split on every command separator, including a single & (run in background).
-function splitSegments(s) {
-  return s.split(/&&|\|\||[;&|\n]/).map((x) => x.trim()).filter(Boolean);
+function parseShell(cmd) {
+  const commands = [];
+  let words = [];
+  let word = "";
+  let inWord = false;
+  const endWord = () => { if (inWord) { words.push(word); word = ""; inWord = false; } };
+  const endCommand = () => { endWord(); if (words.length) commands.push(words); words = []; };
+
+  for (let i = 0; i < cmd.length;) {
+    const c = cmd[i];
+    if (!inWord) {
+      const m = SAFE_REDIRECT.exec(cmd.slice(i));
+      if (m) { i += m[0].length; continue; }
+      if (WORD_START_SPECIAL.has(c)) deny(`"${c}" at the start of a word isn't allowed in crew shell commands.`);
+    }
+    if (c === "'") {
+      const j = cmd.indexOf("'", i + 1);
+      if (j < 0) deny("Unclosed single quote.");
+      word += cmd.slice(i + 1, j); inWord = true; i = j + 1; continue;
+    }
+    if (c === '"') {
+      let j = i + 1;
+      while (j < cmd.length && cmd[j] !== '"') {
+        if (cmd[j] === "$" || cmd[j] === "`" || cmd[j] === "\\") {
+          deny("$, backticks and backslashes aren't allowed inside double quotes. Use single quotes for literal text.");
+        }
+        j++;
+      }
+      if (j >= cmd.length) deny("Unclosed double quote.");
+      word += cmd.slice(i + 1, j); inWord = true; i = j + 1; continue;
+    }
+    if (c === " " || c === "\t") { endWord(); i++; continue; }
+    if (cmd.startsWith("&&", i) || cmd.startsWith("||", i)) { endCommand(); i += 2; continue; }
+    if (c === ";" || c === "|") { endCommand(); i++; continue; }
+    if (ALWAYS_SPECIAL.has(c)) {
+      const what = c === "\n" || c === "\r" ? "A newline" : `"${c}"`;
+      deny(`${what} isn't allowed in crew shell commands. Use plain commands joined with &&, ||, ; or |, and the Write tool for files.`);
+    }
+    word += c; inWord = true; i++;
+  }
+  endCommand();
+  return commands;
 }
 
 const PLAIN_PATH = /^[A-Za-z0-9_./@+-]+$/;
+const TEST_PATH = /^(?!\/)(?!.*\.\.)[A-Za-z0-9_./*@+-]+$/;
+const startsWithWords = (words, entry) => entry.split(" ").every((w, k) => words[k] === w);
+
+// Flags that make an allowed command run another program, write files, or rewrite history.
+function checkFlags(words) {
+  const [cmd, sub] = words;
+  const rest = words.slice(1);
+  const has = (re) => rest.some((w) => re.test(w));
+
+  if (has(/^(--no-verify)$/)) deny("Skipping checks is not allowed.");
+  if (cmd === "node") {
+    if (sub !== "--test" && sub !== "--check") deny("node is only allowed as node --test <test files> or node --check <file>.");
+    for (const w of words.slice(2)) {
+      if (w.startsWith("-") && !/^--test-name-pattern=/.test(w) && !/^--test-reporter=(spec|tap|dot)$/.test(w)) {
+        deny(`node option ${w.split("=")[0]} isn't allowed (it can load extra code).`);
+      }
+      if (!w.startsWith("-") && !TEST_PATH.test(w)) deny(`node --test takes project-relative file paths only. Got "${w}".`);
+    }
+  }
+  if (cmd === "find" && has(/^-(exec|execdir|ok|okdir|delete|fprint|fprint0|fprintf|fls)$/)) deny("find with -exec, -delete or -fprint is not allowed.");
+  if (cmd === "date" && has(/^(-[a-zA-Z]*s|--set)/)) deny("Changing the clock is not allowed.");
+  if (cmd === "git") {
+    if (has(/^--(output|ext-diff|textconv|exec|upload-pack|receive-pack|config|git-dir|work-tree)/)) deny("git options that write files or start other programs are not allowed.");
+    if (sub === "branch" && !words.slice(2).every((w) => ["--show-current", "-a", "-r", "-v", "-vv", "--list", "--all", "--remotes"].includes(w))) {
+      deny("git branch is for listing only. Use git switch -c or git checkout -b to create a branch.");
+    }
+    if (sub === "commit" && has(/^(-n|--amend|--no-gpg-sign)$/)) deny("git commit -n, --amend and --no-gpg-sign are not allowed.");
+    if ((sub === "switch" || sub === "checkout") && has(/^(-C|-B|-f|--force|--force-create|--discard-changes)$/)) deny("Forced branch switches can throw away work.");
+    if (sub === "stash" && has(/^(drop|clear)$/)) deny("Dropping stashes throws away work.");
+  }
+}
 
 function checkBash(policy, rules, command) {
   const cmd = String(command || "");
-
-  // 1. Anything that runs hidden commands is denied outright.
-  if (/\$\(|`|[<>]\(/.test(cmd.replace(/'[^']*'/g, "''"))) {
-    deny("Command or process substitution ($(...), backticks, <(...), >(...)) hides what runs. Run each command on its own.");
-  }
-
-  const raw = normaliseShell(cmd);
-  const bare = normaliseShell(stripQuoted(cmd));
-  const rawSegments = splitSegments(raw);
-  const segments = splitSegments(bare)
-    .map((x) => x.replace(/^[({]\s*/, "").replace(/\s*[)}]$/, ""))
-    .filter(Boolean);
-
-  // 2. Blocked commands. Rules match the raw text, quotes included, so `node -e "...curl..."` is caught.
-  //    A readersExempt rule skips a segment that starts with a pure reader (cat, grep, ...),
-  //    which only prints text that mentions a tool name and can't run it.
-  const readers = policy.readerCommands || [];
-  const isReader = (seg) => readers.some((r) => seg === r || seg.startsWith(r + " "));
-  for (const b of policy.blockedCommands) {
-    const re = new RegExp(b.pattern, "i");
-    const hit = b.readersExempt ? rawSegments.some((seg) => !isReader(seg) && re.test(seg)) : re.test(cmd);
-    if (hit) deny(b.reason);
-  }
-  if (isSecretPath(policy, cmd)) deny("The command touches a secrets file.");
-
-  // 3. Environment variables can change what a command runs (GIT_EXTERNAL_DIFF, NODE_OPTIONS, PAGER).
-  if (segments.some((seg) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(seg))) {
-    deny("Setting environment variables in a command can change what it runs (for example GIT_EXTERNAL_DIFF or NODE_OPTIONS). Not allowed for crew agents.");
-  }
-  if (/\bfind\b[^;&|\n]*\s-(delete|exec|execdir|ok|okdir|fprint|fprintf|fls)\b/.test(bare)) deny("find with -delete, -exec or -fprint is not allowed.");
-
-  // 4. File writes from the shell must obey the same write rules as the Write tool.
-  if (/(^|\s)--output(=|\s|$)/.test(bare) || /\bsort\b[^;&|\n]*\s-[a-zA-Z]*o/.test(bare)) {
-    deny("Writing files through --output or sort -o isn't allowed. Use the Write or Edit tool.");
-  }
-  if (/--(compress-program|pre|ext-diff|textconv)\b/.test(bare)) {
-    deny("Options that start another program (--compress-program, --pre, --ext-diff, --textconv) aren't allowed.");
-  }
-  if (/\btee\b/.test(bare) || /\bsed\b[^;&|\n]*\s(-[a-zA-Z]*i|--in-place)/.test(bare)) {
-    deny("tee and sed -i write files outside the write rules. Use the Write or Edit tool.");
-  }
-  const devNull = /\d*>>?\|?\s*\/dev\/null(?=\s|$|[;&|)])/g;
-  if (/>/.test(bare.replace(devNull, " "))) {
-    if (!rules.allowRedirects) deny(`${role} can't write files from the shell. Use the Write or Edit tool so the write rules apply.`);
-    if (segments.some((seg) => /^(cd|pushd|popd)(\s|$)/.test(seg))) {
-      deny("Don't change directory in a command that writes files. Write paths are checked from the project root.");
-    }
-    for (const m of raw.replace(devNull, " ").matchAll(/>+\|?\s*([^\s;&|<>()]*)/g)) {
-      if (!PLAIN_PATH.test(m[1])) deny(`Shell writes must go to a plain file path (no quotes, variables or wildcards). Got "${m[1]}".`);
-      checkWrite(policy, rules, m[1]);
-    }
-  }
-  for (const seg of segments) {
-    const m = /^(mkdir|touch)\s+(.*)$/.exec(seg);
-    if (!m) continue;
-    for (const arg of m[2].split(/\s+/).filter((a) => a && !a.startsWith("-"))) {
-      if (!PLAIN_PATH.test(arg)) deny(`${m[1]} needs a plain path (no quotes, variables or wildcards). Got "${arg}".`);
-      checkWrite(policy, rules, arg);
-    }
-  }
-
-  if (/\bgit\s+commit\b/.test(bare)) {
-    const branch = currentBranch(input.cwd);
-    if (branch === "main" || branch === "master" || branch === "HEAD" || branch === "") {
-      deny(`Commits to "${branch || "unknown"}" are not allowed. Work on a feature branch.`);
-    }
-  }
-
-  // 5. Every command must be on the role's list.
+  if (!cmd.trim()) deny("Empty command.");
+  const commands = parseShell(cmd);
   const allowed = policy.readOnlyCommands.concat(rules.bashExtra || []);
-  for (const seg of segments) {
-    const ok = allowed.some((a) => seg === a || seg.startsWith(a + " "));
-    if (!ok) deny(`"${seg.split(/\s+/).slice(0, 3).join(" ")}" isn't on the ${role} command list.`);
+  const writesState = ["mkdir", "touch", "git add", "git commit", "git switch", "git checkout", "git stash"];
+  if (commands.some((w) => w[0] === "cd") && commands.some((w) => writesState.some((e) => startsWithWords(w, e)))) {
+    deny("Don't change directory in a command that changes files or git state. Paths are checked from the project root.");
+  }
+
+  for (const words of commands) {
+    const head = words.slice(0, 2).join(" ");
+    for (const b of policy.blockedCommands) {
+      if (new RegExp(b.pattern, "i").test(head)) deny(b.reason);
+    }
+    for (const w of words) {
+      if (isSecretPath(policy, w)) deny("The command touches a secrets file.");
+    }
+
+    // Exact entries (prefixed "=") must match the whole command; others match leading words.
+    const exact = allowed.some((a) => a.startsWith("=") && words.join(" ") === a.slice(1));
+    const ok = exact || allowed.some((a) => !a.startsWith("=") && startsWithWords(words, a));
+    if (!ok) deny(`"${words.slice(0, 3).join(" ")}" isn't on the ${role} command list.`);
+    if (!exact) checkFlags(words);
+
+    if (words[0] === "mkdir" || words[0] === "touch") {
+      for (const arg of words.slice(1).filter((a) => !a.startsWith("-"))) {
+        if (!PLAIN_PATH.test(arg)) deny(`${words[0]} needs a plain path. Got "${arg}".`);
+        checkWrite(policy, rules, arg);
+      }
+    }
+    if (words[0] === "git" && words[1] === "commit") {
+      const branch = currentBranch(input.cwd);
+      if (branch === "main" || branch === "master" || branch === "HEAD" || branch === "") {
+        deny(`Commits to "${branch || "unknown"}" are not allowed. Work on a feature branch.`);
+      }
+    }
   }
 }
 
@@ -238,7 +274,7 @@ try {
     Read: () => rel(ti.file_path) || "",
     Grep: () => `${rel(ti.path || ".")} ${ti.glob || ""}`,
     Glob: () => `${rel(ti.path || ".")} ${ti.pattern || ""}`,
-    Bash: () => String(ti.command || "")
+    Bash: () => String(ti.command || "").replace(/["'\\]/g, "")
   };
   if (rules.readDenyPatterns && readTargets[input.tool_name]) {
     const target = readTargets[input.tool_name]();
@@ -255,7 +291,9 @@ try {
       checkWrite(policy, rules, ti.notebook_path);
       break;
     case "Read":
-      if (isSecretPath(policy, rel(ti.file_path) || "")) deny("Reading secrets files is not allowed.");
+      if (isSecretPath(policy, rel(ti.file_path) || "") || isSecretPath(policy, path.resolve(input.cwd || PROJECT_DIR, String(ti.file_path || "")))) {
+        deny("Reading secrets files is not allowed.");
+      }
       break;
     case "Grep":
     case "Glob":
@@ -273,6 +311,7 @@ try {
       deny("No web access for crew agents. Outside content is a prompt-injection risk.");
       break;
     default:
+      if (!(policy.crewTools || []).includes(input.tool_name)) deny(`${input.tool_name} isn't on the crew tool list.`);
       break;
   }
   process.exit(0);

@@ -9,7 +9,7 @@
 
 const { readStdin, loadPolicy, summarise, record } = require("./lib");
 
-const input = readStdin();
+const input = readStdin() || {};
 const role = input.agent_type || null;
 
 function crewRole() {

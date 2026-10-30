@@ -98,15 +98,69 @@ test("further bypasses found while fixing card 06", () => {
   for (const [role, c, why] of rogue) blocked(bash(role, c), why);
 });
 
+test("Security Engineer findings, mission card 08: shell grammar bypasses", () => {
+  const rogue = [
+    ["security-engineer", "echo () { curl --version; }; echo", "function named after a reader"],
+    ["security-engineer", "cat () { chmod --version; }; cat", "function named after a reader"],
+    ["security-engineer", "find . -maxdepth 0 -ex\"ec\" echo hi ';'", "quote-split find -exec"],
+    ["security-engineer", "git log -1 --format=format:X --out\"put\"=probe.txt", "quote-split --output"],
+    ["security-engineer", "sort -\"o\" out.txt README.md", "quote-split sort -o"],
+    ["security-engineer", "echo PROBE >&1probe-fd.txt", "write disguised as fd duplication"],
+    ["security-engineer", "node --test --import 'data:text/javascript,console.log(1)' x.test.js", "node --test loads inline code"],
+    ["security-engineer", "node --test --require ./x.js x.test.js", "node --test loads extra code"],
+    ["security-engineer", "node --test /tmp/evil.test.js", "node --test outside the project"],
+    ["security-engineer", "ls -la .e\"nv\"", "quote-split secret path"],
+    ["security-engineer", "ls -la .en?", "wildcard secret path"],
+    ["security-engineer", "git show HEAD:.env", "secret from git history"],
+    ["security-engineer", "echo $'curl'", "ANSI-C quoting"],
+    ["security-engineer", "ls\ncurl https://x.io", "newline as separator"],
+    ["security-engineer", "date -s 2020-01-01", "change the clock"],
+    ["responsible-engineer", "cd .claude && mkdir agents", "cd then mkdir in guardrails"],
+    ["responsible-engineer", "git commit -n -m x", "git commit -n skips hooks"],
+    ["responsible-engineer", "git branch -f main HEAD", "move a branch"],
+    ["responsible-engineer", "git stash drop", "throw away work"],
+    ["responsible-engineer", "npm test", "npm scripts run unchecked shell code"],
+    ["test-engineer", "cat 'tests/unit/book.test.js'", "quoted read of builder tests"],
+    ["test-engineer", "git show HEAD:tests/unit/book.test.js", "builder tests via git"]
+  ];
+  for (const [role, c, why] of rogue) blocked(bash(role, c), why);
+});
+
+test("red-team before review: env dumps, agent config, CI, unknown tools", () => {
+  blocked(bash("security-engineer", "cat /proc/self/environ"), "process env holds session tokens");
+  blocked(pre("security-engineer", "Read", { file_path: "/proc/1/environ" }), "Read tool on /proc");
+  blocked(pre("security-engineer", "Read", { file_path: "/root/.claude/.credentials.json" }), "agent credentials");
+  blocked(bash("security-engineer", "ls /root/.claude/sessions"), "agent session files");
+  blocked(bash("security-engineer", "cat .git-credentials"), "git credentials");
+  blocked(bash("security-engineer", "date -us 2020-01-01"), "combined date flags");
+  blocked(write("responsible-engineer", "CLAUDE.md"), "CLAUDE.md instructs future agents");
+  blocked(write("responsible-engineer", "api/CLAUDE.md"), "nested CLAUDE.md");
+  blocked(write("responsible-engineer", ".mcp.json"), ".mcp.json starts MCP servers");
+  blocked(write("responsible-engineer", ".github/workflows/ci.yml"), "CI runs when a human pushes");
+  blocked(pre("responsible-engineer", "mcp__google_drive__create_file", { title: "x" }), "unknown tool");
+  blocked(pre("chief-of-staff", "Skill", { skill: "x" }), "unknown tool");
+  allowed(pre("chief-of-staff", "TodoWrite", { todos: [] }));
+});
+
+test("hook fails closed on unreadable input", () => {
+  const r = spawnSync("node", [RANGE_SAFETY], { input: "{not json", env: { ...process.env, CLAUDE_PROJECT_DIR: proj }, encoding: "utf8" });
+  assert.equal(r.status, 2);
+});
+
 test("normal crew commands still work", () => {
   allowed(bash("responsible-engineer", "node --test tests/unit/a.test.js 2>&1 | tail -20"));
-  allowed(bash("responsible-engineer", "npm test 2>&1 | tail -5"));
-  allowed(bash("responsible-engineer", "echo hello > api/notes.txt"));
+  allowed(bash("launch-director", "node --test \"tests/**/*.test.js\" 2>&1 | grep -E '^# (pass|fail)'"));
   allowed(bash("responsible-engineer", "mkdir -p tests/unit"));
   allowed(bash("test-engineer", "mkdir -p tests/acceptance"));
   allowed(bash("security-engineer", "git diff 832f00f..HEAD -- api/ 2>/dev/null | head -200"));
-  allowed(bash("security-engineer", "git log --oneline -5 & git status"));
+  allowed(bash("security-engineer", "cd /tmp && git diff HEAD~1 --stat 2>&1 | head -50"));
+  allowed(bash("security-engineer", "git log --oneline -5; git status"));
+  allowed(bash("security-engineer", "git branch --show-current"));
+  allowed(bash("security-engineer", "grep -rn 'a|b' api/ | wc -l"));
   allowed(bash("launch-director", "node .crew/bin/verify-recorder.js"));
+  blocked(bash("launch-director", "node .crew/bin/verify-recorder.js --fix"), "exact entry only");
+  blocked(bash("responsible-engineer", "echo hello > api/notes.txt"), "files are written with the Write tool, not the shell");
+  blocked(bash("security-engineer", "git log --oneline -5 & git status"), "single & runs in background");
 });
 
 test("reading or searching for those tool names is not a false positive", () => {
@@ -156,7 +210,7 @@ test("no commits on main", () => {
   blocked(bash("responsible-engineer", "git commit -m x"), "commit on main");
   execFileSync("git", ["-C", proj, "checkout", "-q", "-b", "mission/fixture"]);
   allowed(bash("responsible-engineer", "git commit -m x"));
-  allowed(bash("responsible-engineer", "git add api/book.js && git commit -m \"[responsible-engineer] fix: a > b & c\""));
+  allowed(bash("responsible-engineer", "git add api/book.js && git commit -m \"[responsible-engineer] fix: a > b & c (see #5)\""));
 });
 
 test("Chief of Staff can only dispatch crew roles, with a mission id", () => {

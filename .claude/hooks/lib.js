@@ -10,13 +10,12 @@ const CREW_DIR = path.join(PROJECT_DIR, ".crew");
 const RECORDER_DIR = path.join(CREW_DIR, "flight-recorder");
 const STATE_DIR = path.join(CREW_DIR, "state");
 
+// Returns the hook input, {} if there was none, or null if it wasn't valid JSON.
 function readStdin() {
-  try {
-    const raw = fs.readFileSync(0, "utf8");
-    return raw.trim() ? JSON.parse(raw) : {};
-  } catch (e) {
-    return {};
-  }
+  let raw = "";
+  try { raw = fs.readFileSync(0, "utf8"); } catch (e) { return {}; }
+  if (!raw.trim()) return {};
+  try { return JSON.parse(raw); } catch (e) { return null; }
 }
 
 function loadPolicy() {

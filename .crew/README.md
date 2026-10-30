@@ -59,24 +59,31 @@ Check the audit log hasn't been edited: `node .crew/bin/verify-recorder.js`
 
 ## What Range Safety enforces (see `.crew/policy.json`)
 
-- **Least privilege per role**: each role has its own write paths and command list.
+- **Parse, don't guess**: every shell command is split into words the way bash would. Only plain words,
+  quotes and `&& || ; |` are accepted. `$`, backticks, `( ) { } < > &`, globs and newlines are denied, and
+  files are written with the Write tool, never the shell. Each command and flag must be explicitly allowed.
+- **Least privilege per role**: each role has its own write paths, command list and a fixed tool list.
 - **Maker ≠ checker**: the builder can't touch acceptance tests; the tester can't touch source or read the builder's work.
 - **Human gate**: the builder can't start until `approvals.md` says `DESIGN: APPROVED`.
 - **Hard limits**: 3 build cycles per mission, 400 tool calls per session.
 - **No push, merge, deploy, network, new packages, or secrets** for any crew agent. No commits on `main`.
-- **Guardrails protect themselves**: agents can't edit `.claude/`, the policy, the recorder or approvals.
+- **Guardrails protect themselves**: agents can't edit `.claude/`, the policy, the recorder, approvals,
+  `CLAUDE.md`, `.mcp.json` (both steer future agent sessions) or `.github/` (runs when you push).
 - **Explainability**: an agent can't finish without a flight card (Verdict and Evidence lines).
 - **Fails closed**: if the policy check errors, the action is blocked.
 
-Prove it: `npm run test:crew` (16 tests, 90+ attack and normal-use cases against the real hook scripts).
+Prove it: `npm run test:crew` (19 tests, 130+ attack and normal-use cases against the real hook scripts).
 
 ## Honest limits
 
 Hooks are guardrails, not a sandbox. They check every command an agent asks to run, and
 deny anything they can't parse safely. They **can't** see inside code that runs later:
-a test file or an `npm test` script the builder writes can do anything, and every role
-that runs the tests runs that code. The first live mission proved the point: the Security
-Engineer found two bypasses in Range Safety itself (card 06), and fixing them turned up seven more.
+a test file the builder writes can do anything, and every role that runs `node --test` runs it.
+A recursive `grep -r` can also read a secrets file that sits inside the working tree.
+
+The first live mission proved why this matters. Regex rules over shell text failed three
+security reviews in a row (cards 04, 06, 08: 20 bypasses in total). The parser-based check
+replaced them. Treat the hooks as the seatbelt and the sandbox below as the crash structure.
 
 Before using this on a real codebase:
 
