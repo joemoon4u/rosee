@@ -72,7 +72,7 @@
   var planSelect = $("#f-plan");
   var message = $("#f-message");
   var counter = $("#message-count");
-  var startedAt = Date.now();
+  var startedAt = performance.now();
 
   // Plan buttons pre-select the consultation and take you to the form
   $all(".choose-plan").forEach(function (btn) {
@@ -146,7 +146,7 @@
       message: String(data.get("message") || "").trim().slice(0, MESSAGE_MAX),
       consent: !!form.elements.consent.checked,
       website: String(data.get("website") || ""),
-      startedAt: startedAt
+      fillMs: Math.round(performance.now() - startedAt)
     };
   }
 
@@ -176,7 +176,7 @@
 
   function resetForm() {
     form.reset();
-    startedAt = Date.now();
+    startedAt = performance.now();
     updateCount();
     setStatus("");
     success.hidden = true;

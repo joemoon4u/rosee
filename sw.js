@@ -3,7 +3,7 @@
    - Static assets: cache first, refreshed in the background
    - The booking API is never cached
    Bump VERSION whenever you deploy changes so visitors get the update. */
-const VERSION = "rosee-v1";
+const VERSION = "rosee-v2";
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 

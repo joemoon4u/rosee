@@ -144,9 +144,13 @@ module.exports = async function handler(req, res) {
   }
 
   // Bots: filled the hidden field, or submitted impossibly fast. Pretend success, send nothing.
-  const startedAt = Number(body.startedAt);
-  if ((typeof body.website === "string" && body.website.trim() !== "") ||
-      (Number.isFinite(startedAt) && Date.now() - startedAt < MIN_FILL_MS)) {
+  // fillMs is measured by the browser on its own monotonic clock, so device clock
+  // differences can't cause a false drop. A legacy startedAt is ignored.
+  const fillMs = body.fillMs;
+  const honeypot = typeof body.website === "string" && body.website.trim() !== "";
+  const tooFast = typeof fillMs === "number" && Number.isFinite(fillMs) && fillMs >= 0 && fillMs < MIN_FILL_MS;
+  if (honeypot || tooFast) {
+    console.warn("booking: filtered (" + (honeypot ? "honeypot" : "too_fast") + ")");
     return res.status(200).json({ ok: true });
   }
 
