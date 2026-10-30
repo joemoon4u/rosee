@@ -2,3 +2,7 @@
 *.zip
 .vercel
 node_modules
+
+# crew runtime state (counters, locks)
+.crew/state/
+*.lock

@@ -1,3 +1,8 @@
 README.md
 *.zip
 .DS_Store
+
+# agent crew and tests are not part of the website
+.claude
+.crew
+tests
