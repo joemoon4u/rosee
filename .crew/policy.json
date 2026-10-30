@@ -1,0 +1,89 @@
+{
+  "_about": "Range Safety policy. Read by .claude/hooks/range-safety.js before every tool call a crew agent makes. Deterministic: an agent cannot argue its way past it. Only the Flight Director (a human) edits this file.",
+
+  "crewRoles": [
+    "chief-of-staff",
+    "chief-engineer",
+    "responsible-engineer",
+    "test-engineer",
+    "security-engineer",
+    "launch-director"
+  ],
+
+  "budget": {
+    "maxToolCallsPerSession": 400,
+    "maxBuildCyclesPerMission": 3
+  },
+
+  "protectedPaths": [
+    ".claude/",
+    ".crew/policy.json",
+    ".crew/bin/",
+    ".crew/tests/",
+    ".crew/flight-recorder/",
+    ".crew/state/",
+    ".git/"
+  ],
+
+  "humanOnlyFileNames": ["approvals.md"],
+
+  "secretPathPatterns": [
+    "(^|[\\s/\"'=])\\.env(rc|\\.[A-Za-z0-9_-]+)?($|[\\s\"';|&)])",
+    "\\.(pem|key|p12|pfx)($|[\\s\"';|&)])",
+    "(^|[\\s/])id_(rsa|ed25519|ecdsa)",
+    "(^|[\\s/])\\.npmrc($|[\\s\"';|&)])",
+    "(^|[\\s/])\\.(vercel|aws|ssh)(/|$|[\\s\"';|&)])"
+  ],
+
+  "blockedCommands": [
+    { "pattern": "\\bgit\\s+push\\b", "reason": "Pushing is the Flight Director's step. Crew work stays local until a human approves." },
+    { "pattern": "\\bgit\\s+(merge|rebase|tag|cherry-pick)\\b", "reason": "History changes are human-only." },
+    { "pattern": "\\bgit\\s+reset\\s+--hard\\b|\\bgit\\s+clean\\b|\\bgit\\s+branch\\s+-D\\b|\\bgit\\s+checkout\\s+--\\s", "reason": "Destructive git commands can throw away work." },
+    { "pattern": "--no-verify", "reason": "Skipping checks is not allowed." },
+    { "pattern": "\\brm\\s+-[a-zA-Z]*[rR]", "reason": "Recursive delete is not allowed." },
+    { "pattern": "\\b(curl|wget|ssh|scp|sftp|rsync|nc|ncat|telnet|ftp)\\b", "reason": "No network access from the crew. Prevents data leaving and stops prompt-injected downloads." },
+    { "pattern": "\\b(npm\\s+(i|install|ci|add|update|publish)|npx|yarn|pnpm|pip3?\\s+install|brew)\\b", "reason": "No new packages. A new dependency needs a Chief Engineer ADR and human approval." },
+    { "pattern": "\\b(vercel|gh|kubectl|terraform|aws|gcloud|az)\\b", "reason": "Deploy and cloud tools are human-only." },
+    { "pattern": "\\b(sudo|su|chmod|chown|eval)\\b", "reason": "Privilege and permission changes are not allowed." },
+    { "pattern": "(^|[;&|]\\s*)(printenv|env)\\s*($|[;&|])|\\bset\\s*$|\\bexport\\s+-p\\b", "reason": "Dumping environment variables can expose secrets." }
+  ],
+
+  "readOnlyCommands": [
+    "ls", "cat", "head", "tail", "wc", "grep", "rg", "find", "sort", "uniq", "diff", "pwd", "echo", "date", "tree", "file", "stat", "cd", "true", "test", "[",
+    "git status", "git diff", "git log", "git show", "git branch", "git rev-parse", "git ls-files", "git blame",
+    "node --test", "npm test", "npm run test", "node --check"
+  ],
+
+  "roles": {
+    "chief-of-staff": {
+      "write": [".crew/missions/"],
+      "bashExtra": [],
+      "canDispatch": ["chief-engineer", "responsible-engineer", "test-engineer", "security-engineer", "launch-director"]
+    },
+    "chief-engineer": {
+      "write": [".crew/missions/"],
+      "bashExtra": []
+    },
+    "responsible-engineer": {
+      "write": ["*"],
+      "writeDeny": ["tests/acceptance/", ".crew/"],
+      "bashExtra": ["node", "mkdir", "touch", "git add", "git commit", "git switch", "git checkout -b", "git stash"],
+      "allowRedirects": true,
+      "gate": { "approvalFile": "approvals.md", "mustContain": "DESIGN: APPROVED" }
+    },
+    "test-engineer": {
+      "write": ["tests/acceptance/"],
+      "readDenyPatterns": ["(^|[\\s/])tests/unit(/|$|\\s)", "/flight-cards/"],
+      "readDenyReason": "The Test Engineer works from the spec only. It can't see the builder's unit tests or flight cards, so it can't inherit the builder's blind spots.",
+      "bashExtra": ["mkdir", "git add", "git commit"]
+    },
+    "security-engineer": {
+      "write": [],
+      "bashExtra": []
+    },
+    "launch-director": {
+      "write": [".crew/missions/"],
+      "bashExtra": ["git add", "git commit", "node .crew/bin/verify-recorder.js"]
+    }
+  }
+}
