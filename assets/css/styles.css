@@ -675,6 +675,31 @@ p { margin: 0 0 1em; text-wrap: pretty; }
 .read-source { margin: 0.35rem 0 0.35rem; font-size: 0.88rem; color: var(--rose-deep); }
 .read-note { margin: 0; font-size: 0.97rem; color: var(--plum-soft); }
 
+/* ---------- Recommended reading (books) ---------- */
+.booklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(20px, 3vw, 32px);
+}
+
+.booklist-item { padding: 1.1rem 0; border-bottom: 1px solid var(--line); }
+
+.book-title {
+  font-size: 1.15rem;
+  font-style: italic;
+  font-weight: 400;
+  margin-bottom: 0.2rem;
+}
+.book-author { margin: 0 0 0.4rem; color: var(--rose-deep); font-size: 0.92rem; }
+.book-reason { margin: 0; color: var(--plum-soft); font-size: 0.97rem; }
+
+@media (max-width: 860px) {
+  .booklist { grid-template-columns: 1fr; }
+}
+
 /* ---------- Booking ---------- */
 .book {
   background:
