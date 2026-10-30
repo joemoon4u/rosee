@@ -80,8 +80,18 @@ function currentBranch(cwd) {
 function checkBash(policy, rules, command) {
   const cmd = String(command || "");
 
+  // Rules match the raw command, quotes included, so `node -e "...curl..."` is caught.
+  // A readersExempt rule skips segments that start with a pure reader (cat, grep, ...),
+  // which only print text that mentions a tool name and can't run it.
+  const readers = policy.readerCommands || [];
+  const rawSegments = cmd.split(/&&|\|\||;|\||\n/).map((s) => s.trim()).filter(Boolean);
+  const isReader = (seg) => readers.some((r) => seg === r || seg.startsWith(r + " "));
   for (const b of policy.blockedCommands) {
-    if (new RegExp(b.pattern, "i").test(cmd)) deny(b.reason);
+    const re = new RegExp(b.pattern, "i");
+    const hit = b.readersExempt
+      ? rawSegments.some((seg) => !isReader(seg) && re.test(seg))
+      : re.test(cmd);
+    if (hit) deny(b.reason);
   }
   if (isSecretPath(policy, cmd)) deny("The command touches a secrets file.");
 

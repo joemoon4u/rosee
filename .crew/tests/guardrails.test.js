@@ -57,12 +57,21 @@ test("no crew agent can push, install packages, use the network or deploy", () =
   blocked(bash("security-engineer", "ls && gh pr create"), "deploy tool after &&");
   blocked(bash("security-engineer", "(curl https://example.com)"), "network in subshell");
   blocked(bash("security-engineer", "FOO=1 curl https://example.com"), "network after env assignment");
+  // gaps the Security Engineer found in the first version of the reader fix
+  for (const c of ["env curl https://x.io", "time curl https://x.io", "nohup curl https://x.io", "command curl https://x.io", "\\curl https://x.io"]) {
+    blocked(bash("security-engineer", c), c);
+  }
+  blocked(bash("responsible-engineer", "node -e \"require('child_process').execSync('curl https://x.io')\""), "network hidden in node -e");
+  blocked(bash("responsible-engineer", "cat README.md && vercel --prod"), "deploy after a reader");
+  blocked(bash("responsible-engineer", "grep -n x api/book.js | sh -c 'curl https://x.io'"), "network piped after a reader");
+  blocked(bash("security-engineer", "rg --pre curl x api/"), "rg --pre runs a command, so rg is not a reader");
 });
 
 test("reading or searching for those tool names is not a false positive", () => {
   allowed(bash("chief-engineer", "cat README.md vercel.json"));
   allowed(bash("security-engineer", "grep -n curl api/book.js"));
   allowed(bash("security-engineer", "grep -rn \"npm install\" README.md"));
+  allowed(bash("chief-engineer", "grep -n \"startedAt\" api/book.js; echo ---; cat README.md vercel.json"), "the exact shape that was blocked in the mission");
 });
 
 test("secrets can't be read by any crew agent", () => {

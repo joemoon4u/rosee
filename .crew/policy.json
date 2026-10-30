@@ -1,5 +1,6 @@
 {
   "_about": "Range Safety policy. Read by .claude/hooks/range-safety.js before every tool call a crew agent makes. Deterministic: an agent cannot argue its way past it. Only the Flight Director (a human) edits this file.",
+
   "crewRoles": [
     "chief-of-staff",
     "chief-engineer",
@@ -8,10 +9,12 @@
     "security-engineer",
     "launch-director"
   ],
+
   "budget": {
     "maxToolCallsPerSession": 400,
     "maxBuildCyclesPerMission": 3
   },
+
   "protectedPaths": [
     ".claude/",
     ".crew/policy.json",
@@ -21,9 +24,9 @@
     ".crew/state/",
     ".git/"
   ],
-  "humanOnlyFileNames": [
-    "approvals.md"
-  ],
+
+  "humanOnlyFileNames": ["approvals.md"],
+
   "secretPathPatterns": [
     "(^|[\\s/\"'=])\\.env(rc|\\.[A-Za-z0-9_-]+)?($|[\\s\"';|&)])",
     "\\.(pem|key|p12|pfx)($|[\\s\"';|&)])",
@@ -31,158 +34,59 @@
     "(^|[\\s/])\\.npmrc($|[\\s\"';|&)])",
     "(^|[\\s/])\\.(vercel|aws|ssh)(/|$|[\\s\"';|&)])"
   ],
+
   "blockedCommands": [
-    {
-      "pattern": "\\bgit\\s+push\\b",
-      "reason": "Pushing is the Flight Director's step. Crew work stays local until a human approves."
-    },
-    {
-      "pattern": "\\bgit\\s+(merge|rebase|tag|cherry-pick)\\b",
-      "reason": "History changes are human-only."
-    },
-    {
-      "pattern": "\\bgit\\s+reset\\s+--hard\\b|\\bgit\\s+clean\\b|\\bgit\\s+branch\\s+-D\\b|\\bgit\\s+checkout\\s+--\\s",
-      "reason": "Destructive git commands can throw away work."
-    },
-    {
-      "pattern": "--no-verify",
-      "reason": "Skipping checks is not allowed."
-    },
-    {
-      "pattern": "\\brm\\s+-[a-zA-Z]*[rR]",
-      "reason": "Recursive delete is not allowed."
-    },
-    {
-      "pattern": "(^|[;&|(\\n]\\s*|\\bxargs\\s+)(curl|wget|ssh|scp|sftp|rsync|nc|ncat|telnet|ftp)(\\s|$)",
-      "reason": "No network access from the crew. Prevents data leaving and stops prompt-injected downloads."
-    },
-    {
-      "pattern": "(^|[;&|(\\n]\\s*|\\bxargs\\s+)(npm\\s+(i|install|ci|add|update|publish)|npx|yarn|pnpm|pip3?\\s+install|brew)(\\s|$)",
-      "reason": "No new packages. A new dependency needs a Chief Engineer ADR and human approval."
-    },
-    {
-      "pattern": "(^|[;&|(\\n]\\s*|\\bxargs\\s+)(vercel|gh|kubectl|terraform|aws|gcloud|az)(\\s|$)",
-      "reason": "Deploy and cloud tools are human-only."
-    },
-    {
-      "pattern": "(^|[;&|(\\n]\\s*|\\bxargs\\s+)(sudo|su|chmod|chown|eval)(\\s|$)",
-      "reason": "Privilege and permission changes are not allowed."
-    },
-    {
-      "pattern": "(^|[;&|]\\s*)(printenv|env)\\s*($|[;&|])|\\bset\\s*$|\\bexport\\s+-p\\b",
-      "reason": "Dumping environment variables can expose secrets."
-    }
+    { "pattern": "\\bgit\\s+push\\b", "reason": "Pushing is the Flight Director's step. Crew work stays local until a human approves." },
+    { "pattern": "\\bgit\\s+(merge|rebase|tag|cherry-pick)\\b", "reason": "History changes are human-only." },
+    { "pattern": "\\bgit\\s+reset\\s+--hard\\b|\\bgit\\s+clean\\b|\\bgit\\s+branch\\s+-D\\b|\\bgit\\s+checkout\\s+--\\s", "reason": "Destructive git commands can throw away work." },
+    { "pattern": "--no-verify", "reason": "Skipping checks is not allowed." },
+    { "pattern": "\\brm\\s+-[a-zA-Z]*[rR]", "reason": "Recursive delete is not allowed." },
+    { "pattern": "\\b(curl|wget|ssh|scp|sftp|rsync|nc|ncat|telnet|ftp)\\b", "readersExempt": true, "reason": "No network access from the crew. Prevents data leaving and stops prompt-injected downloads." },
+    { "pattern": "\\b(npm\\s+(i|install|ci|add|update|publish)|npx|yarn|pnpm|pip3?\\s+install|brew)\\b", "readersExempt": true, "reason": "No new packages. A new dependency needs a Chief Engineer ADR and human approval." },
+    { "pattern": "\\b(vercel|gh|kubectl|terraform|aws|gcloud|az)\\b", "readersExempt": true, "reason": "Deploy and cloud tools are human-only." },
+    { "pattern": "\\b(sudo|su|chmod|chown|eval)\\b", "readersExempt": true, "reason": "Privilege and permission changes are not allowed." },
+    { "pattern": "(^|[;&|]\\s*)(printenv|env)\\s*($|[;&|])|\\bset\\s*$|\\bexport\\s+-p\\b", "reason": "Dumping environment variables can expose secrets." }
   ],
+
+  "_readersExempt": "A rule marked readersExempt still matches the word anywhere (inside quotes too), except in a command segment that starts with a pure reader below, e.g. 'cat vercel.json' or 'grep -n curl api/book.js'. Readers only print; they can't run what they mention. Added after a false positive (mission 2026-10-30-fix-fill-time-clock, recorder seq 5). rg is deliberately not a reader: rg --pre runs a command.",
+  "readerCommands": ["cat", "head", "tail", "wc", "grep", "ls", "echo", "diff", "file", "stat", "tree", "git diff", "git log", "git show", "git blame", "git ls-files"],
+
   "readOnlyCommands": [
-    "ls",
-    "cat",
-    "head",
-    "tail",
-    "wc",
-    "grep",
-    "rg",
-    "find",
-    "sort",
-    "uniq",
-    "diff",
-    "pwd",
-    "echo",
-    "date",
-    "tree",
-    "file",
-    "stat",
-    "cd",
-    "true",
-    "test",
-    "[",
-    "git status",
-    "git diff",
-    "git log",
-    "git show",
-    "git branch",
-    "git rev-parse",
-    "git ls-files",
-    "git blame",
-    "node --test",
-    "npm test",
-    "npm run test",
-    "node --check"
+    "ls", "cat", "head", "tail", "wc", "grep", "rg", "find", "sort", "uniq", "diff", "pwd", "echo", "date", "tree", "file", "stat", "cd", "true", "test", "[",
+    "git status", "git diff", "git log", "git show", "git branch", "git rev-parse", "git ls-files", "git blame",
+    "node --test", "npm test", "npm run test", "node --check"
   ],
+
   "roles": {
     "chief-of-staff": {
-      "write": [
-        ".crew/missions/"
-      ],
+      "write": [".crew/missions/"],
       "bashExtra": [],
-      "canDispatch": [
-        "chief-engineer",
-        "responsible-engineer",
-        "test-engineer",
-        "security-engineer",
-        "launch-director"
-      ]
+      "canDispatch": ["chief-engineer", "responsible-engineer", "test-engineer", "security-engineer", "launch-director"]
     },
     "chief-engineer": {
-      "write": [
-        ".crew/missions/"
-      ],
+      "write": [".crew/missions/"],
       "bashExtra": []
     },
     "responsible-engineer": {
-      "write": [
-        "*"
-      ],
-      "writeDeny": [
-        "tests/acceptance/",
-        ".crew/"
-      ],
-      "bashExtra": [
-        "node",
-        "mkdir",
-        "touch",
-        "git add",
-        "git commit",
-        "git switch",
-        "git checkout -b",
-        "git stash"
-      ],
+      "write": ["*"],
+      "writeDeny": ["tests/acceptance/", ".crew/"],
+      "bashExtra": ["node", "mkdir", "touch", "git add", "git commit", "git switch", "git checkout -b", "git stash"],
       "allowRedirects": true,
-      "gate": {
-        "approvalFile": "approvals.md",
-        "mustContain": "DESIGN: APPROVED"
-      }
+      "gate": { "approvalFile": "approvals.md", "mustContain": "DESIGN: APPROVED" }
     },
     "test-engineer": {
-      "write": [
-        "tests/acceptance/"
-      ],
-      "readDenyPatterns": [
-        "(^|[\\s/])tests/unit(/|$|\\s)",
-        "/flight-cards/"
-      ],
+      "write": ["tests/acceptance/"],
+      "readDenyPatterns": ["(^|[\\s/])tests/unit(/|$|\\s)", "/flight-cards/"],
       "readDenyReason": "The Test Engineer works from the spec only. It can't see the builder's unit tests or flight cards, so it can't inherit the builder's blind spots.",
-      "bashExtra": [
-        "mkdir",
-        "git add",
-        "git commit"
-      ]
+      "bashExtra": ["mkdir", "git add", "git commit"]
     },
     "security-engineer": {
       "write": [],
       "bashExtra": []
     },
     "launch-director": {
-      "write": [
-        ".crew/missions/"
-      ],
-      "bashExtra": [
-        "git add",
-        "git commit",
-        "node .crew/bin/verify-recorder.js"
-      ]
+      "write": [".crew/missions/"],
+      "bashExtra": ["git add", "git commit", "node .crew/bin/verify-recorder.js"]
     }
-  },
-  "_changelog": [
-    "2026-10-30: network, package, deploy and privilege rules now match the command itself, not any mention of the word. Evidence: mission 2026-10-30-fix-fill-time-clock, recorder seq 5 blocked 'cat README.md vercel.json' (a read). The per-role command allowlist still blocks these tools anywhere they could run."
-  ]
+  }
 }
