@@ -1,4 +1,4 @@
-# Rosée Skin Atelier
+# Rosée Skin Atelier - THE ONE
 
 A one-page website for an independent skin consultancy, with a booking form.
 It's a Progressive Web App (installable on phones, works offline) and is ready to deploy on Vercel.
