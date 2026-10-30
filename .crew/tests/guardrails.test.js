@@ -54,6 +54,15 @@ test("no crew agent can push, install packages, use the network or deploy", () =
   blocked(bash("launch-director", "curl https://example.com"), "network");
   blocked(bash("launch-director", "vercel --prod"), "deploy");
   blocked(pre("chief-engineer", "WebFetch", { url: "https://example.com" }), "web");
+  blocked(bash("security-engineer", "ls && gh pr create"), "deploy tool after &&");
+  blocked(bash("security-engineer", "(curl https://example.com)"), "network in subshell");
+  blocked(bash("security-engineer", "FOO=1 curl https://example.com"), "network after env assignment");
+});
+
+test("reading or searching for those tool names is not a false positive", () => {
+  allowed(bash("chief-engineer", "cat README.md vercel.json"));
+  allowed(bash("security-engineer", "grep -n curl api/book.js"));
+  allowed(bash("security-engineer", "grep -rn \"npm install\" README.md"));
 });
 
 test("secrets can't be read by any crew agent", () => {
