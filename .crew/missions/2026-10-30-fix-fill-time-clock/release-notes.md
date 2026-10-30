@@ -1,47 +1,54 @@
-# Fix: real booking requests silently dropped by device-clock fill-time check
+# HOLD: do not merge. Launch Director verdict is NO-GO (poll 2)
 
-**HOLD: the launch poll is NO-GO. Do not merge until the Range Safety policy change below is resolved.**
+The booking fix is ready and tested. The pull request is blocked by two HIGH findings in the Range Safety hook change (9e7de9b). See go-no-go.md. Once the Flight Director fixes the hook and Security re-reviews, this text can be used as the PR description.
+
+# Fix silent drop of real booking requests (fill-time clock skew)
 
 ## What changed and why
-Some visitors saw the success message but the studio got no email. The server compared the visitor's device clock (`startedAt`) with its own clock. When the device clock was ahead, the elapsed time looked under 3 s, so the server returned a fake 200 and sent nothing.
+Some visitors saw the success message but the studio never got an email. The bot filter compared `startedAt`, taken from the visitor's device clock in `assets/js/app.js`, with the server clock in `api/book.js`. A skewed device clock made a real request look "too fast", and it was dropped silently.
 
-- `assets/js/app.js`: the browser now measures fill time with `performance.now()` and sends `fillMs`. It no longer sends `startedAt`.
-- `api/book.js`: the server drops silently only when `fillMs` is a finite number with `0 <= fillMs < 3000`. A legacy `startedAt` is ignored, so old cached clients and offline-queued requests get through. Each silent drop (honeypot or too fast) now logs one PII-free line.
-- `sw.js`: `VERSION` is now `rosee-v2` so clients pick up the new JS.
-- `package.json`: adds an `npm test` script (not in the original design).
+- `assets/js/app.js`: the client now sends `fillMs`, the elapsed time measured with `performance.now()`. This is a monotonic clock and does not depend on the wall clock. `startedAt` is no longer sent.
+- `api/book.js`: the server validates `fillMs` strictly. Below 3000 ms is dropped, as before. A legacy `startedAt` from an old cached client is ignored, so old clients are not dropped. Drop log lines contain no personal data. The honeypot check is unchanged.
+- `sw.js`: cache version bumped to `rosee-v2`, so visitors get the new client.
+- `package.json`: adds an `npm test` script (unit tests).
 - Tests: `tests/unit/book-fill-time.test.js` and `tests/acceptance/fill-time-clock.test.js`.
-- **Also in this branch, outside the design:** `.crew/policy.json` and `.crew/tests/guardrails.test.js` (commit f5cb1d2). See Risks.
 
-Spam protection is unchanged. A bot could already skip the check by omitting `startedAt`. The honeypot, validation, rate limit and response codes are untouched.
+Spam protection is not weakened. The 3-second minimum and the honeypot remain. Bots that omit `fillMs` skip the time trap, which is accepted in the design; the honeypot still applies.
 
-## How it was tested (Launch Director re-run)
-- `npm test` (unit only): 10 pass, 0 fail.
-- `node --test "tests/**/*.test.js"`: 32 pass, 0 fail (10 unit, 22 acceptance).
-- `.crew/tests/*.test.js` (guardrails): 13 pass, 0 fail.
-- All of AC-1 to AC-9 have tests. AC-7 (browser clock changed) is a source check only. It was not tested in a real browser. Please do a manual check.
+## Crew guardrail change (separate from the app fix)
+Commit 9e7de9b changes `.crew/policy.json`, `.claude/hooks/range-safety.js` and `.crew/tests/guardrails.test.js`. It replaces the earlier loosened rule (f5cb1d2) with a "reader exemption". The Flight Director approved it in approvals.md. Security found two HIGH bypasses in it (below). The cleanest path may be to split this into its own reviewed PR.
+
+## How it was tested
+- `npm test`: 10 pass, 0 fail.
+- `node --test "tests/**/*.test.js"`: 32 pass, 0 fail (10 unit, 22 acceptance). AC-1 to AC-9 each map to a test.
+- `node --test ".crew/tests/*.test.js"`: 13 pass, 0 fail (guardrails). They do not cover the bypasses below.
+- Flight recorder chain: OK (98 entries).
+- Not tested: AC-7 is a source check. Test by hand in a browser with the device clock moved forward and backward.
 
 ## Security review
-Security Engineer: **NO-GO**. The app code has no findings. The one open **Medium** is about guardrails. Commit f5cb1d2 changed the `blockedCommands` rules in `.crew/policy.json` to match only at the start of a command. `env curl`, `time curl`, `nohup curl`, `\curl` and quoted payloads are no longer caught. The change was made without recorded Flight Director approval. The per-role allowlist still blocks most of these.
+Card 06 (re-review of 832f00f..HEAD): NO-GO.
+- App code: no findings. The original MEDIUM (f5cb1d2) is resolved.
+- HIGH: `range-safety.js` ignores a single `&`, so `echo x & curl ...` skips the blocked-command rules.
+- HIGH: `<(...)` process substitution is not denied, so `cat <(curl ...)` skips them.
+- MEDIUM: no tests for either case.
+These affect only the crew's agent guardrails, not the website.
 
 ## Risks
-- Unresolved: the unapproved policy.json loosening. The Flight Director must approve it in approvals.md, or revert or split it out.
-- `fillMs` can be forged, as `startedAt` could be. The next step if spam rises is a signed server timestamp or Vercel Bot protection.
-- Old cached clients skip the timing check for a short time. The `sw.js` bump limits this.
-- `performance.now()` can pause while a tab sleeps. A real visitor is very unlikely to be affected.
-- Not changed, as agreed: the honeypot may be filled by autofill, and an offline-saved request is lost on a 400 or 429 at replay.
-- `npm test` runs only the unit tests. Consider widening the glob.
-- README.md:65 was not updated.
+- Guardrail bypasses above. They must be fixed or explicitly accepted by the Flight Director.
+- The approval commits are authored by `Claude <noreply@anthropic.com>`. Confirm outside git that they are the Flight Director's own.
+- Follow-ups, out of scope: autofill may fill the honeypot (`index.html:592`). An offline-saved request is lost on 400/429 at replay. The README fill-time line is not updated.
+- Deploying: visitors with cached pages get the new client after the service worker updates.
 
 ## Rollback
-Revert the build commit 4112ca6 (and f5cb1d2 if the policy change is rejected), then redeploy. A human does this. No data or schema is involved. Bump `sw.js` `VERSION` again on redeploy so clients refresh.
+- App: revert 4112ca6 (and `git revert 430e6dc` for the tests). Revert the `sw.js` version bump with it, or bump to `rosee-v3` so caches refresh.
+- Guardrails: revert 9e7de9b and a16c3cd's scope as the Flight Director decides.
+- No data migration, no new dependencies.
 
 ## Flight cards
-- `flight-cards/01-chief-engineer.md`: DONE
-- `flight-cards/02-responsible-engineer.md`: DONE
-- `flight-cards/03-test-engineer.md`: GO
-- `flight-cards/04-security-engineer.md`: NO-GO
-- `go-no-go.md`: NO-GO
-
-🤖 Generated with [Claude Code](https://claude.ai/code)
-
-https://claude.ai/code/session_01GqRUaJ9L99ds5aXa1QatmS
+- flight-cards/01-chief-engineer.md
+- flight-cards/02-responsible-engineer.md
+- flight-cards/03-test-engineer.md
+- flight-cards/04-security-engineer.md (NO-GO, f5cb1d2)
+- flight-cards/05-launch-director.md (NO-GO, poll 1)
+- flight-cards/06-security-engineer.md (NO-GO, 9e7de9b)
+- go-no-go.md (poll 2)

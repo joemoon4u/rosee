@@ -1,36 +1,37 @@
-# Go/No-Go: 2026-10-30-fix-fill-time-clock
+# Go/No-Go: 2026-10-30-fix-fill-time-clock (poll 2)
 
-Base 832f00f. Build 4112ca6. Acceptance tests 430e6dc. Polled by the Launch Director, who re-checked each station.
+Base 832f00f. App fix 4112ca6. Acceptance tests 430e6dc. Policy replacement 9e7de9b, approved in a16c3cd. HEAD at poll: a16c3cd. Polled by the Launch Director, who re-checked each station.
 
-**Overall: NO-GO.** The Security station is NO-GO, and the Scope station is also NO-GO. They are the same cause: commit f5cb1d2 changed Range Safety policy with no recorded approval.
+**Overall: NO-GO.** The app fix is sound and tested. The release is blocked by two HIGH Range Safety bypasses that 9e7de9b introduced in `.claude/hooks/range-safety.js`. The builder cannot fix them (guardrail files are Flight Director-owned).
 
 | Station | Verdict | Evidence |
 |---|---|---|
-| Design | GO | design.md exists. approvals.md has `DESIGN: APPROVED - Joseph Moonjely, 2026-10-30 18:07 AEDT`, scoped to design.md Option A. |
-| Build | GO | Card 02 says DONE. Commit 4112ca6 exists. The app diff matches the design: fillMs from performance.now(), strict server check, legacy startedAt ignored, PII-free log line, sw.js `rosee-v2`. |
-| Scope | NO-GO | The diff matches design section 6 for `api/book.js`, `assets/js/app.js`, `sw.js` and `tests/`. Extras: (1) `.crew/policy.json` (+169 lines changed) and `.crew/tests/guardrails.test.js` (+9), both in f5cb1d2, are not in "Files to change" and not covered by approvals.md. (2) `package.json` gains an `npm test` script, which is minor and sensible but not listed. The mission records and the flight-recorder JSONL are not counted. |
-| Test | GO (with a caveat) | I re-ran `npm test`: 10 pass, 0 fail. I re-ran `node --test "tests/**/*.test.js"`: 32 pass, 0 fail (10 unit, 22 acceptance). I re-ran `.crew/tests/*.test.js`: 13 pass, 0 fail. Card 03 maps every AC-1 to AC-9 to a test. Caveats: `npm test` runs unit tests only. AC-7 is a source check, not a real browser with a changed clock. |
-| Security | NO-GO | Card 04 says NO-GO, with one open MEDIUM finding. Commit f5cb1d2 loosened `.crew/policy.json` `blockedCommands`. Network, package, deploy and privilege rules used to match the word anywhere. They now match only at the start of a command. As a result `env curl`, `time curl`, `nohup curl`, `\curl` and quoted payloads are no longer caught. policy.json is Flight Director-only, and approvals.md approves only design.md. I confirmed from the diff and from approvals.md that no approval exists. The app code has no findings. The builder cannot fix this, because guardrail files are off-limits. |
-| Range Safety | GO (explained) | `node .crew/bin/verify-recorder.js` reports `OK d7c78ecb-...jsonl (70 entries)`. The recorder holds 10 `RangeSafetyDeny` events and 0 `FlightCardMissing` events. Details below. |
+| Design | GO | design.md exists. approvals.md has `DESIGN: APPROVED - Joseph Moonjely, 2026-10-30 18:07 AEDT`, Option A. |
+| Build | GO | Card 02 says DONE. 4112ca6 exists. Diff to `api/book.js`, `assets/js/app.js`, `sw.js` matches the design. No app file has changed since 430e6dc. |
+| Scope | GO (with the policy change recorded) | Design files match. Extras beyond "Files to change": `package.json` (test script, minor) and the guardrail files `.crew/policy.json`, `.claude/hooks/range-safety.js`, `.crew/tests/guardrails.test.js`. The guardrail files are now covered by `POLICY CHANGE: APPROVED` in approvals.md, which names exactly these three files and 9e7de9b. The loosened rules from f5cb1d2 are gone. See the provenance note below. |
+| Test | GO | I re-ran: `npm test` 10 pass, 0 fail. `node --test "tests/**/*.test.js"` 32 pass, 0 fail (10 unit, 22 acceptance). `node --test ".crew/tests/*.test.js"` 13 pass, 0 fail. Every AC-1 to AC-9 has a test (card 03). Caveats: `npm test` runs unit tests only. AC-7 is a source check. The guardrail tests do not cover the two bypasses below, which is why 13/13 passes. |
+| Security | NO-GO | Card 06 says NO-GO. The original MEDIUM (f5cb1d2 loosening) is resolved. Open: HIGH 1, single `&` bypass. HIGH 2, `<(...)`/`>(...)` bypass. MEDIUM, no tests for either. I checked the code myself, and the cards' trace holds. Line 87 splits on `&& \|\| ; \| \n` only, so `echo x & curl https://evil.io` is one segment starting with `echo`. It is treated as a reader, and the readersExempt rules (network, package, deploy, privilege) are skipped. Line 122 uses the same split, so the allowlist sees `echo` and allows it. Line 99 denies only `$(` and backticks, so `cat <(curl ...)` passes in the same way. I did not run these, because a real probe would make a network call. |
+| Range Safety | GO (explained) | `node .crew/bin/verify-recorder.js` reports `OK d7c78ecb-...jsonl (98 entries)` (chain intact). I counted 13 `RangeSafetyDeny` events and 0 `FlightCardMissing`. Details below. |
 
-## RangeSafetyDeny events (10)
-- seq 1, chief-of-staff: used a shell heredoc to write mission.md. Denied. It redid the write with the Write tool. Correct behavior.
-- seq 2, chief-of-staff: tried to launch the Chief Engineer before mission.md existed. Denied. Correct behavior.
-- seq 5, chief-engineer: a Bash read that included `cat vercel.json` was matched as a deploy tool. It is a false positive. It led to the f5cb1d2 policy change, which is the open issue.
-- seq 21, responsible-engineer: `sed -n` is not on its allowlist. Denied. Harmless.
-- seq 29, responsible-engineer: a heredoc test-file write from the shell. Denied. It used the Write tool instead.
-- seq 38, chief-of-staff: a heredoc flight-card write. Denied. It used the Write tool instead.
-- seq 43, test-engineer: grep/sed that read the builder's unit tests. Denied by the spec-only rule. Correct behavior.
-- seq 46, test-engineer: a heredoc test-file write. Denied. It used the Write tool instead.
-- seq 56, security-engineer: a variable assignment is not on its allowlist. Denied. Harmless.
-- seq 60, security-engineer: a command containing `$(`. Denied. Harmless.
+## RangeSafetyDeny events (13 at time of count)
+Ten are unchanged from poll 1 (seq 1, 2, 5, 21, 29, 38, 43, 46, 56, 60). They were guardrails working as intended, apart from seq 5, a `cat vercel.json` false positive that led to f5cb1d2. New since poll 1:
+- seq 85, security-engineer: `sed -n 1,40p` is not on its allowlist. Harmless.
+- seq 94, launch-director (me): a compound command that began with `sed -n`. Not on my list. Harmless, I re-ran with permitted commands.
+- seq 103, launch-director (me): `cut -c` not on my list. Harmless.
+My own later calls may add events that are not counted here.
 
-Nine of the ten denials were guardrails working as intended. Seq 5 is the one that led to the unapproved policy change. I counted the recorder as of my check. Any later events from this poll are mine and were not counted.
+## Provenance and audit notes
+- The approval commits 310ad93 and a16c3cd are authored by `Claude <noreply@anthropic.com>`, as is 9e7de9b. Git cannot show that a human wrote the approval lines. The Flight Director should confirm outside git that both approvals are his. approvals.md is a human-only file by policy, so this is the one control that rests on trust.
+- 9e7de9b was committed at 18:14 and approved at 18:16, so approval followed the commit, as the commit message said ("Pending Flight Director approval"). That matches the process.
+- Uncommitted at poll time: the flight-recorder JSONL (modified) and flight-cards/06 (untracked).
 
-## Other observations
-- The flight-recorder JSONL is modified but uncommitted (the builder noted this). Cards 02 to 04 were untracked until this commit.
-- policy.json was changed during the design phase, before the human design gate. The commit message says it is "tune Range Safety". It reads as a good-faith fix for a false positive. It is still an unapproved change to a guardrail that was made by an agent.
-
-## What the Flight Director must decide
-1. Either approve the policy.json change explicitly in approvals.md, or revert it (and the matching guardrails test) or split it into a separate reviewed change. Optionally add guardrail tests for `env curl`, `time curl` and `\curl`.
-2. After that, Security needs to re-run, or the Flight Director must accept the finding. I did not override the NO-GO.
+## What the Flight Director must do
+The builder cannot fix this, since `.claude/` is a protected path. Options, in order of preference:
+1. Edit `/home/claude/rosee/.claude/hooks/range-safety.js` (or have an agent do it under your direct instruction):
+   - Lines 87 and 122: also split on a single `&`, for example `/&&|\|\||[;&|\n]/`. Take care with `N>&M` redirects: line 122 runs on `bare`, and the redirect noise is stripped at line 105 only for the write check, so add a test for `2>&1`.
+   - Line 99: deny `<(` and `>(` as well, for example `/\$\(|`|[<>]\(/`.
+2. Add `blocked(...)` cases to `.crew/tests/guardrails.test.js` for `echo x & curl https://x.io`, `cat <(curl https://x.io)` and `ls & vercel --prod`. Also add an allowed case for `cmd 2>&1`, so the fix does not break normal use.
+3. Record a new `POLICY CHANGE: APPROVED` in approvals.md that covers the fix, then ask Security to re-review `9e7de9b..HEAD`.
+4. Alternative: revert 9e7de9b and a16c3cd's scope to the strict f5cb1d2-parent rules (the original rules, with their `cat vercel.json` false positive). This is safe and is what the mission shipped with at base. It trades usability for security.
+5. Alternative, if you accept the risk: record an explicit risk acceptance in approvals.md. I do not recommend it, because these bypasses let a crew agent run network, install and deploy commands that were blocked before 9e7de9b.
+6. Then ask for another launch poll. The app fix itself needs no change.
