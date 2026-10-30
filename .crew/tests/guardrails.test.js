@@ -118,7 +118,7 @@ test("Security Engineer findings, mission card 08: shell grammar bypasses", () =
     ["responsible-engineer", "cd .claude && mkdir agents", "cd then mkdir in guardrails"],
     ["responsible-engineer", "git commit -n -m x", "git commit -n skips hooks"],
     ["responsible-engineer", "git branch -f main HEAD", "move a branch"],
-    ["responsible-engineer", "git stash drop", "throw away work"],
+    ["responsible-engineer", "git stash drop", "throw away work (stash removed from builder)"],
     ["responsible-engineer", "npm test", "npm scripts run unchecked shell code"],
     ["test-engineer", "cat 'tests/unit/book.test.js'", "quoted read of builder tests"],
     ["test-engineer", "git show HEAD:tests/unit/book.test.js", "builder tests via git"]
@@ -142,6 +142,42 @@ test("red-team before review: env dumps, agent config, CI, unknown tools", () =>
   allowed(pre("chief-of-staff", "TodoWrite", { todos: [] }));
 });
 
+test("Security Engineer findings, mission card 10: guardrail rollback and path tricks", () => {
+  // HIGH: changing what's on disk could delete or roll back Range Safety
+  for (const c of ["git switch main", "git checkout main", "git checkout -b x main", "git checkout -b x 9e365f5",
+                   "git switch --orphan x", "git switch --detach HEAD~1", "git switch -c x main", "git stash", "git stash pop"]) {
+    blocked(bash("responsible-engineer", c), c);
+  }
+  allowed(bash("responsible-engineer", "git switch -c mission/next-fix"));
+  allowed(bash("responsible-engineer", "git checkout -b mission/other-fix"));
+  // MEDIUM: secret paths through cd, relative climbs or attached options
+  for (const [role, c] of [
+    ["security-engineer", "cd /proc && cat self/environ"],
+    ["security-engineer", "cd / && cat proc/self/environ"],
+    ["security-engineer", "cat ../../../../proc/self/environ"],
+    ["security-engineer", "date -f/proc/self/environ"],
+    ["security-engineer", "date -f.npmrc"],
+    ["security-engineer", "grep -f.env x api/"],
+    ["security-engineer", "git log --format=%s --grep=x --since=1.day -- .git-credentials"],
+    ["responsible-engineer", "git commit --allow-empty -F/proc/self/environ"],
+    ["security-engineer", "cd .claude"],
+    ["security-engineer", "cd"]
+  ]) blocked(bash(role, c), c);
+  // Lows
+  blocked(bash("security-engineer", "date --se 2020-01-01"), "abbreviated --set");
+  blocked(bash("security-engineer", "git log -1 --outp=probe.txt"), "abbreviated --output");
+  blocked(bash("test-engineer", "cat tests//unit/book.test.js"), "double slash");
+  blocked(bash("test-engineer", "cd tests && cat unit/book.test.js"), "cd then relative read");
+});
+
+test("a missing Range Safety script blocks instead of failing open", () => {
+  const settings = JSON.parse(fs.readFileSync(path.join(REPO, ".claude/settings.json"), "utf8"));
+  const command = settings.hooks.PreToolUse[0].hooks[0].command;
+  const empty = fs.mkdtempSync(path.join(os.tmpdir(), "crew-nohook-"));
+  const r = spawnSync("bash", ["-c", command], { input: "{}", env: { ...process.env, CLAUDE_PROJECT_DIR: empty }, encoding: "utf8" });
+  assert.equal(r.status, 2, "hook command must exit 2 when the script is missing");
+});
+
 test("hook fails closed on unreadable input", () => {
   const r = spawnSync("node", [RANGE_SAFETY], { input: "{not json", env: { ...process.env, CLAUDE_PROJECT_DIR: proj }, encoding: "utf8" });
   assert.equal(r.status, 2);
@@ -153,7 +189,7 @@ test("normal crew commands still work", () => {
   allowed(bash("responsible-engineer", "mkdir -p tests/unit"));
   allowed(bash("test-engineer", "mkdir -p tests/acceptance"));
   allowed(bash("security-engineer", "git diff 832f00f..HEAD -- api/ 2>/dev/null | head -200"));
-  allowed(bash("security-engineer", "cd /tmp && git diff HEAD~1 --stat 2>&1 | head -50"));
+  allowed(bash("security-engineer", "cd api && git diff HEAD~1 --stat 2>&1 | head -50"));
   allowed(bash("security-engineer", "git log --oneline -5; git status"));
   allowed(bash("security-engineer", "git branch --show-current"));
   allowed(bash("security-engineer", "grep -rn 'a|b' api/ | wc -l"));
@@ -193,7 +229,7 @@ test("report-only roles can't write, even through the shell", () => {
   blocked(bash("chief-engineer", "sed -i s/a/b/ api/book.js"), "sed -i");
   blocked(bash("chief-engineer", "echo x | tee api/book.js"), "tee");
   blocked(bash("chief-engineer", "node -e \"require('fs').writeFileSync('a','b')\""), "node -e not on list");
-  allowed(bash("security-engineer", "cd /tmp && git diff HEAD~1 --stat 2>&1 | head -50"));
+  allowed(bash("security-engineer", "cd api && git diff HEAD~1 --stat 2>&1 | head -50"));
 });
 
 test("guardrails, audit logs and approvals can't be changed by agents", () => {

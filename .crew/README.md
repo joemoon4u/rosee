@@ -70,15 +70,19 @@ Check the audit log hasn't been edited: `node .crew/bin/verify-recorder.js`
 - **Guardrails protect themselves**: agents can't edit `.claude/`, the policy, the recorder, approvals,
   `CLAUDE.md`, `.mcp.json` (both steer future agent sessions) or `.github/` (runs when you push).
 - **Explainability**: an agent can't finish without a flight card (Verdict and Evidence lines).
-- **Fails closed**: if the policy check errors, the action is blocked.
+- **Fails closed**: if the policy check errors, gets bad input, or its script is missing, the action is blocked.
+- **The ground can't move**: the builder can only create a new branch from the current commit, so it can't
+  switch to a branch where the guardrails don't exist (Security card 10).
 
-Prove it: `npm run test:crew` (19 tests, 130+ attack and normal-use cases against the real hook scripts).
+Prove it: `npm run test:crew` (21 tests, 150+ attack and normal-use cases against the real hook scripts).
 
 ## Honest limits
 
 Hooks are guardrails, not a sandbox. They check every command an agent asks to run, and
 deny anything they can't parse safely. They **can't** see inside code that runs later:
-a test file the builder writes can do anything, and every role that runs `node --test` runs it.
+a test file the builder writes can do anything, and every role that runs `node --test` runs it,
+including deleting the guardrail files themselves (a missing Range Safety script blocks every call,
+but a missing `settings.json` means no hooks at all).
 A recursive `grep -r` can also read a secrets file that sits inside the working tree.
 
 The first live mission proved why this matters. Regex rules over shell text failed three

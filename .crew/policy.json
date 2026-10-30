@@ -77,7 +77,7 @@
     "responsible-engineer": {
       "write": ["*"],
       "writeDeny": ["tests/acceptance/", ".crew/"],
-      "bashExtra": ["mkdir", "touch", "git add", "git commit", "git switch", "git checkout -b", "git stash"],
+      "bashExtra": ["mkdir", "touch", "git add", "git commit", "git switch -c", "git checkout -b"],
       "gate": { "approvalFile": "approvals.md", "mustContain": "DESIGN: APPROVED" }
     },
     "test-engineer": {

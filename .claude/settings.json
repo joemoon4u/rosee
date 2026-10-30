@@ -13,7 +13,7 @@
       {
         "matcher": "*",
         "hooks": [
-          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/range-safety.js", "timeout": 15 }
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/range-safety.js || exit 2", "timeout": 15 }
         ]
       }
     ],

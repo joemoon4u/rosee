@@ -34,8 +34,19 @@
 
 - Strict shell parsing 9427c8f approved (97e4fe8). Security re-review (card 08): both card-06 HIGHs and test gap fixed, but NO-GO on 3 new HIGH bypasses of checkBash (reader-named function, quote-split find/--output, `>&1file`), a pre-existing HIGH (`node --test --import`) and 2 MEDIUMs. Launch re-poll NO-GO, release pack HOLD (9e365f5, card 09). No fix loop (guardrails are Flight Director-owned). Build cycles used: 1 of 3.
 
+- Range Safety v3 parser d4c7b37 approved (8c0fe7d). Security re-review (card 10): all card-08 findings FIXED, but NO-GO on a new HIGH (`git switch` / `git checkout -b` unrestricted in policy.json:80, can roll back or delete the hook script, so the hook may fail open) and a MEDIUM (secret paths via `cd` or attached short options, e.g. `date -f/proc/self/environ`). Launch re-poll NO-GO, release pack HOLD (3d28b09, card 11); tests 51/51 pass. No fix loop (guardrails are Flight Director-owned). Build cycles used: 1 of 3.
+- A shell attempt by the Chief of Staff to update this file was blocked by Range Safety (a `$` inside double quotes); updated with the Edit tool instead, no other route tried.
+
+| Task (cont.) | Owner | Status |
+|---|---|---|
+| Security re-review (9427c8f) | security-engineer | NO-GO: 3 HIGH + pre-existing HIGH (flight-cards/08) |
+| Launch re-poll | launch-director | NO-GO, HOLD, 9e365f5 (flight-cards/09) |
+| Security re-review (d4c7b37) | security-engineer | NO-GO: 1 new HIGH (git switch), 1 MEDIUM (flight-cards/10) |
+| Launch re-poll | launch-director | NO-GO, HOLD, 3d28b09 (flight-cards/11) |
+
 ## Risks
-- BLOCKER (card 08): range-safety.js still bypassable: `echo () { ...; }; echo`, `find -ex"ec"` / `--out"put"=`, `>&1file`, and `node --test --import`. Needs Flight Director fix, new policy approval, Security re-review, fresh poll. Security suggests a word-splitting allowlist instead of regex. Alternative: ship the booking fix alone, move guardrail commits to a separate PR.
+- BLOCKER (card 10): `git switch` / `git checkout -b` unrestricted (policy.json:80) lets the builder remove or roll back range-safety.js; hook exit 1 does not block. Fail-open severity is Medium confidence until the Flight Director confirms. Also MEDIUM: secret reads via `cd` or `date -f/proc/self/environ`. Lows: `date --s` abbreviation, git option abbreviations, tester-test-path dodges, `git stash`. No guardrail tests cover these.
+- BLOCKER (card 08, now fixed in d4c7b37): range-safety.js still bypassable: `echo () { ...; }; echo`, `find -ex"ec"` / `--out"put"=`, `>&1file`, and `node --test --import`. Needs Flight Director fix, new policy approval, Security re-review, fresh poll. Security suggests a word-splitting allowlist instead of regex. Alternative: ship the booking fix alone, move guardrail commits to a separate PR.
 - Security flagged harness-neutralized instruction-shaped text in its output (settings-json pattern); treated as data, no action taken.
 - BLOCKER: 9e7de9b range-safety.js bypasses (HIGH): `echo x & curl ...` and `cat <(curl ...)` skip the blocked-command rules. Needs a Flight Director fix, a new policy approval, then re-review.
 - Approval commits (310ad93, 9e7de9b, a16c3cd) are authored by Claude noreply; human authorship of the approval lines can't be verified in git.

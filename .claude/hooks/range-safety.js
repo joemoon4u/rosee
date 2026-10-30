@@ -152,15 +152,27 @@ function checkFlags(words) {
     }
   }
   if (cmd === "find" && has(/^-(exec|execdir|ok|okdir|delete|fprint|fprint0|fprintf|fls)$/)) deny("find with -exec, -delete or -fprint is not allowed.");
-  if (cmd === "date" && has(/^(-[a-zA-Z]*s|--set)/)) deny("Changing the clock is not allowed.");
+  if (cmd === "date" && has(/^(-[a-zA-Z]*s|--s)/)) deny("Changing the clock is not allowed.");
   if (cmd === "git") {
-    if (has(/^--(output|ext-diff|textconv|exec|upload-pack|receive-pack|config|git-dir|work-tree)/)) deny("git options that write files or start other programs are not allowed.");
+    // long options may be abbreviated (--outp=), so match any prefix of a dangerous option
+    const dangerous = ["output", "ext-diff", "textconv", "exec", "upload-pack", "receive-pack", "config", "git-dir", "work-tree"];
+    const isDangerous = (w) => {
+      if (!w.startsWith("--")) return false;
+      const name = w.slice(2).split("=")[0];
+      return name.length >= 2 && dangerous.some((d) => d.startsWith(name) || name.startsWith(d));
+    };
+    if (rest.some(isDangerous)) deny("git options that write files or start other programs are not allowed.");
+    // Changing what's on disk could remove or roll back the guardrails (Security card 10).
+    if (sub === "switch" || sub === "checkout") {
+      const flag = sub === "switch" ? "-c" : "-b";
+      if (words.length !== 4 || words[2] !== flag || !/^[A-Za-z0-9][A-Za-z0-9._\/-]*$/.test(words[3])) {
+        deny(`Only "git ${sub} ${flag} <new-branch>" is allowed: a new branch from the current commit, so the files on disk (and the guardrails) don't change.`);
+      }
+    }
     if (sub === "branch" && !words.slice(2).every((w) => ["--show-current", "-a", "-r", "-v", "-vv", "--list", "--all", "--remotes"].includes(w))) {
       deny("git branch is for listing only. Use git switch -c or git checkout -b to create a branch.");
     }
     if (sub === "commit" && has(/^(-n|--amend|--no-gpg-sign)$/)) deny("git commit -n, --amend and --no-gpg-sign are not allowed.");
-    if ((sub === "switch" || sub === "checkout") && has(/^(-C|-B|-f|--force|--force-create|--discard-changes)$/)) deny("Forced branch switches can throw away work.");
-    if (sub === "stash" && has(/^(drop|clear)$/)) deny("Dropping stashes throws away work.");
   }
 }
 
@@ -169,18 +181,37 @@ function checkBash(policy, rules, command) {
   if (!cmd.trim()) deny("Empty command.");
   const commands = parseShell(cmd);
   const allowed = policy.readOnlyCommands.concat(rules.bashExtra || []);
-  const writesState = ["mkdir", "touch", "git add", "git commit", "git switch", "git checkout", "git stash"];
+  const writesState = ["mkdir", "touch", "git add", "git commit", "git switch", "git checkout"];
   if (commands.some((w) => w[0] === "cd") && commands.some((w) => writesState.some((e) => startsWithWords(w, e)))) {
-    deny("Don't change directory in a command that changes files or git state. Paths are checked from the project root.");
+    deny("Don't change directory in a command that changes files or git state.");
   }
 
+  let cwd = path.resolve(input.cwd || PROJECT_DIR);
   for (const words of commands) {
+    if (words[0] === "cd") {
+      if (words.length !== 2) deny("cd needs exactly one directory inside the project.");
+      const target = path.resolve(cwd, words[1]);
+      const r = path.relative(PROJECT_DIR, target).split(path.sep).join("/");
+      if (r.startsWith("..") || path.isAbsolute(r)) deny("cd outside the project isn't allowed.");
+      if (isSecretPath(policy, r) || policy.protectedPaths.some((pre) => startsWithPrefix(r, pre))) {
+        deny(`cd into ${r} isn't allowed.`);
+      }
+      cwd = target;
+    }
+    // Check every word as typed, without an attached option (-f/x, --file=/x), and as an absolute path.
+    for (const w of words) {
+      const forms = [w, w.replace(/^-[A-Za-z]/, ""), w.replace(/^--[A-Za-z-]+=/, "")];
+      for (const f of forms.filter(Boolean)) {
+        if (isSecretPath(policy, f) || isSecretPath(policy, path.resolve(cwd, f))) deny("The command touches a secrets file.");
+        if (rules.readDenyPatterns) {
+          const r = path.relative(PROJECT_DIR, path.resolve(cwd, f)).split(path.sep).join("/");
+          if (rules.readDenyPatterns.some((re) => new RegExp(re).test(r))) deny(rules.readDenyReason || "Not allowed to read that.");
+        }
+      }
+    }
     const head = words.slice(0, 2).join(" ");
     for (const b of policy.blockedCommands) {
       if (new RegExp(b.pattern, "i").test(head)) deny(b.reason);
-    }
-    for (const w of words) {
-      if (isSecretPath(policy, w)) deny("The command touches a secrets file.");
     }
 
     // Exact entries (prefixed "=") must match the whole command; others match leading words.
@@ -192,7 +223,7 @@ function checkBash(policy, rules, command) {
     if (words[0] === "mkdir" || words[0] === "touch") {
       for (const arg of words.slice(1).filter((a) => !a.startsWith("-"))) {
         if (!PLAIN_PATH.test(arg)) deny(`${words[0]} needs a plain path. Got "${arg}".`);
-        checkWrite(policy, rules, arg);
+        checkWrite(policy, rules, path.resolve(cwd, arg));
       }
     }
     if (words[0] === "git" && words[1] === "commit") {
