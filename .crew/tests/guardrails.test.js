@@ -67,11 +67,53 @@ test("no crew agent can push, install packages, use the network or deploy", () =
   blocked(bash("security-engineer", "rg --pre curl x api/"), "rg --pre runs a command, so rg is not a reader");
 });
 
+test("Security Engineer findings, mission card 06: background & and process substitution", () => {
+  for (const c of [
+    "echo x & curl https://x.io", "ls & vercel --prod", "cat README.md & npm install pkg", "echo & chmod 777 api/book.js",
+    "cat <(curl https://x.io)", "diff <(curl https://a.io) <(wget https://b.io)", "echo x > >(curl https://x.io)"
+  ]) blocked(bash("security-engineer", c), c);
+});
+
+test("further bypasses found while fixing card 06", () => {
+  const rogue = [
+    ["security-engineer", "GIT_EXTERNAL_DIFF=./evil.sh git diff", "env var changes what git runs"],
+    ["security-engineer", "NODE_OPTIONS=--require=./x.js node --test", "env var injects code"],
+    ["security-engineer", "git diff --output=.claude/settings.json", "write via --output"],
+    ["security-engineer", "sort -o out.txt README.md", "write via sort -o"],
+    ["security-engineer", "sort --compress-program=./evil.sh README.md", "sort runs a program"],
+    ["security-engineer", "git log --ext-diff -p", "external diff program"],
+    ["security-engineer", "rg --pre ./evil.sh x", "rg runs a program"],
+    ["responsible-engineer", "echo x &> .claude/settings.json", "&> into guardrails"],
+    ["responsible-engineer", "echo x >| .claude/settings.json", ">| into guardrails"],
+    ["responsible-engineer", "echo x >& .crew/policy.json", ">& into policy"],
+    ["responsible-engineer", "echo x > $CLAUDE_PROJECT_DIR/.claude/settings.json", "variable in target"],
+    ["responsible-engineer", "echo x > ~/.bashrc", "home dir target"],
+    ["responsible-engineer", "echo x > \"tests/acceptance/a.test.js\"", "quoted target"],
+    ["responsible-engineer", "cd .claude && echo x > settings.json", "cd then relative write"],
+    ["responsible-engineer", "touch .crew/missions/m/approvals.md", "touch approvals"],
+    ["responsible-engineer", "mkdir -p .claude/agents/rogue", "mkdir in guardrails"],
+    ["responsible-engineer", "echo x | tee api/book.js", "tee"],
+    ["responsible-engineer", "node -e \"console.log(1)\"", "arbitrary node"]
+  ];
+  for (const [role, c, why] of rogue) blocked(bash(role, c), why);
+});
+
+test("normal crew commands still work", () => {
+  allowed(bash("responsible-engineer", "node --test tests/unit/a.test.js 2>&1 | tail -20"));
+  allowed(bash("responsible-engineer", "npm test 2>&1 | tail -5"));
+  allowed(bash("responsible-engineer", "echo hello > api/notes.txt"));
+  allowed(bash("responsible-engineer", "mkdir -p tests/unit"));
+  allowed(bash("test-engineer", "mkdir -p tests/acceptance"));
+  allowed(bash("security-engineer", "git diff 832f00f..HEAD -- api/ 2>/dev/null | head -200"));
+  allowed(bash("security-engineer", "git log --oneline -5 & git status"));
+  allowed(bash("launch-director", "node .crew/bin/verify-recorder.js"));
+});
+
 test("reading or searching for those tool names is not a false positive", () => {
   allowed(bash("chief-engineer", "cat README.md vercel.json"));
   allowed(bash("security-engineer", "grep -n curl api/book.js"));
   allowed(bash("security-engineer", "grep -rn \"npm install\" README.md"));
-  allowed(bash("chief-engineer", "grep -n \"startedAt\" api/book.js; echo ---; cat README.md vercel.json"), "the exact shape that was blocked in the mission");
+  allowed(bash("chief-engineer", "grep -n \"startedAt\" api/book.js; echo ---; cat README.md vercel.json"));
 });
 
 test("secrets can't be read by any crew agent", () => {
@@ -114,6 +156,7 @@ test("no commits on main", () => {
   blocked(bash("responsible-engineer", "git commit -m x"), "commit on main");
   execFileSync("git", ["-C", proj, "checkout", "-q", "-b", "mission/fixture"]);
   allowed(bash("responsible-engineer", "git commit -m x"));
+  allowed(bash("responsible-engineer", "git add api/book.js && git commit -m \"[responsible-engineer] fix: a > b & c\""));
 });
 
 test("Chief of Staff can only dispatch crew roles, with a mission id", () => {

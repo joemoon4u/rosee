@@ -68,11 +68,23 @@ Check the audit log hasn't been edited: `node .crew/bin/verify-recorder.js`
 - **Explainability**: an agent can't finish without a flight card (Verdict and Evidence lines).
 - **Fails closed**: if the policy check errors, the action is blocked.
 
-Prove it: `npm run test:crew` (12 tests against the real hook scripts).
+Prove it: `npm run test:crew` (16 tests, 90+ attack and normal-use cases against the real hook scripts).
 
 ## Honest limits
 
-Hooks are guardrails, not a sandbox. They catch mistakes and most prompt-injection attempts,
-but a determined process with shell access can find gaps (for example, a test script that writes files).
-For production use, add OS-level isolation: run the crew in a container, give it a GitHub token
-that can't push to `main`, and keep deploy credentials out of the environment entirely.
+Hooks are guardrails, not a sandbox. They check every command an agent asks to run, and
+deny anything they can't parse safely. They **can't** see inside code that runs later:
+a test file or an `npm test` script the builder writes can do anything, and every role
+that runs the tests runs that code. The first live mission proved the point: the Security
+Engineer found two bypasses in Range Safety itself (card 06), and fixing them turned up seven more.
+
+Before using this on a real codebase:
+
+1. **Sandbox**: run the crew in a container with no network egress except the model API,
+   and mount `.claude/`, `.crew/policy.json`, `.crew/bin/` and `.crew/tests/` read-only.
+2. **Credentials**: give the crew a GitHub token that can push feature branches only, with
+   branch protection on `main`. Keep deploy and cloud credentials out of the environment.
+3. **Approvals**: add a CODEOWNERS rule and required review for `.claude/`, `.crew/policy.json`
+   and `**/approvals.md`, so a human approval is a signed GitHub review and not a text line.
+   In the first test mission the approval lines were typed by Claude on the Flight Director's
+   instruction in chat, so git shows Claude as the author.

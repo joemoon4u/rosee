@@ -77,38 +77,80 @@ function currentBranch(cwd) {
   }
 }
 
+// fd duplications (2>&1, >&2, <&0) are neither writes nor separators.
+// &> and >& mean "write stdout and stderr", the same as > for our checks; |& is a pipe.
+function normaliseShell(s) {
+  return s.replace(/\d*[<>]&\d+-?/g, " ").replace(/&>/g, ">").replace(/>&/g, ">").replace(/\|&/g, "|");
+}
+
+// Split on every command separator, including a single & (run in background).
+function splitSegments(s) {
+  return s.split(/&&|\|\||[;&|\n]/).map((x) => x.trim()).filter(Boolean);
+}
+
+const PLAIN_PATH = /^[A-Za-z0-9_./@+-]+$/;
+
 function checkBash(policy, rules, command) {
   const cmd = String(command || "");
 
-  // Rules match the raw command, quotes included, so `node -e "...curl..."` is caught.
-  // A readersExempt rule skips segments that start with a pure reader (cat, grep, ...),
-  // which only print text that mentions a tool name and can't run it.
+  // 1. Anything that runs hidden commands is denied outright.
+  if (/\$\(|`|[<>]\(/.test(cmd.replace(/'[^']*'/g, "''"))) {
+    deny("Command or process substitution ($(...), backticks, <(...), >(...)) hides what runs. Run each command on its own.");
+  }
+
+  const raw = normaliseShell(cmd);
+  const bare = normaliseShell(stripQuoted(cmd));
+  const rawSegments = splitSegments(raw);
+  const segments = splitSegments(bare)
+    .map((x) => x.replace(/^[({]\s*/, "").replace(/\s*[)}]$/, ""))
+    .filter(Boolean);
+
+  // 2. Blocked commands. Rules match the raw text, quotes included, so `node -e "...curl..."` is caught.
+  //    A readersExempt rule skips a segment that starts with a pure reader (cat, grep, ...),
+  //    which only prints text that mentions a tool name and can't run it.
   const readers = policy.readerCommands || [];
-  const rawSegments = cmd.split(/&&|\|\||;|\||\n/).map((s) => s.trim()).filter(Boolean);
   const isReader = (seg) => readers.some((r) => seg === r || seg.startsWith(r + " "));
   for (const b of policy.blockedCommands) {
     const re = new RegExp(b.pattern, "i");
-    const hit = b.readersExempt
-      ? rawSegments.some((seg) => !isReader(seg) && re.test(seg))
-      : re.test(cmd);
+    const hit = b.readersExempt ? rawSegments.some((seg) => !isReader(seg) && re.test(seg)) : re.test(cmd);
     if (hit) deny(b.reason);
   }
   if (isSecretPath(policy, cmd)) deny("The command touches a secrets file.");
 
-  const bare = stripQuoted(cmd);
-  if (/\$\(|`/.test(cmd.replace(/'[^']*'/g, "''"))) {
-    deny("Command substitution ($(...) or backticks) hides what runs. Run each command on its own.");
+  // 3. Environment variables can change what a command runs (GIT_EXTERNAL_DIFF, NODE_OPTIONS, PAGER).
+  if (segments.some((seg) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(seg))) {
+    deny("Setting environment variables in a command can change what it runs (for example GIT_EXTERNAL_DIFF or NODE_OPTIONS). Not allowed for crew agents.");
   }
-  if (/\bfind\b[^;&|]*\s-(delete|exec|execdir|ok|fprint)\b/.test(bare)) deny("find with -delete or -exec is not allowed.");
+  if (/\bfind\b[^;&|\n]*\s-(delete|exec|execdir|ok|okdir|fprint|fprintf|fls)\b/.test(bare)) deny("find with -delete, -exec or -fprint is not allowed.");
 
-  // Redirects and in-place edits are writes. They must follow the same write rules.
-  const noise = bare.replace(/\d?>&\d/g, "").replace(/&?\d?>>?\s*\/dev\/null/g, "");
-  const writesViaShell = /[^<]>|^>/.test(noise) || /\btee\b/.test(noise) || /\bsed\s+(-[a-zA-Z]*i|--in-place)/.test(noise);
-  if (writesViaShell) {
+  // 4. File writes from the shell must obey the same write rules as the Write tool.
+  if (/(^|\s)--output(=|\s|$)/.test(bare) || /\bsort\b[^;&|\n]*\s-[a-zA-Z]*o/.test(bare)) {
+    deny("Writing files through --output or sort -o isn't allowed. Use the Write or Edit tool.");
+  }
+  if (/--(compress-program|pre|ext-diff|textconv)\b/.test(bare)) {
+    deny("Options that start another program (--compress-program, --pre, --ext-diff, --textconv) aren't allowed.");
+  }
+  if (/\btee\b/.test(bare) || /\bsed\b[^;&|\n]*\s(-[a-zA-Z]*i|--in-place)/.test(bare)) {
+    deny("tee and sed -i write files outside the write rules. Use the Write or Edit tool.");
+  }
+  const devNull = /\d*>>?\|?\s*\/dev\/null(?=\s|$|[;&|)])/g;
+  if (/>/.test(bare.replace(devNull, " "))) {
     if (!rules.allowRedirects) deny(`${role} can't write files from the shell. Use the Write or Edit tool so the write rules apply.`);
-    const targets = [...cmd.matchAll(/(?:^|[^0-9&<])>{1,2}\s*["']?([^\s;&|"'<>]+)/g)].map((m) => m[1])
-      .concat([...noise.matchAll(/\btee\s+(?:-a\s+)?([^\s;&|]+)/g)].map((m) => m[1]));
-    targets.filter((t) => t !== "/dev/null").forEach((t) => checkWrite(policy, rules, t));
+    if (segments.some((seg) => /^(cd|pushd|popd)(\s|$)/.test(seg))) {
+      deny("Don't change directory in a command that writes files. Write paths are checked from the project root.");
+    }
+    for (const m of raw.replace(devNull, " ").matchAll(/>+\|?\s*([^\s;&|<>()]*)/g)) {
+      if (!PLAIN_PATH.test(m[1])) deny(`Shell writes must go to a plain file path (no quotes, variables or wildcards). Got "${m[1]}".`);
+      checkWrite(policy, rules, m[1]);
+    }
+  }
+  for (const seg of segments) {
+    const m = /^(mkdir|touch)\s+(.*)$/.exec(seg);
+    if (!m) continue;
+    for (const arg of m[2].split(/\s+/).filter((a) => a && !a.startsWith("-"))) {
+      if (!PLAIN_PATH.test(arg)) deny(`${m[1]} needs a plain path (no quotes, variables or wildcards). Got "${arg}".`);
+      checkWrite(policy, rules, arg);
+    }
   }
 
   if (/\bgit\s+commit\b/.test(bare)) {
@@ -118,12 +160,9 @@ function checkBash(policy, rules, command) {
     }
   }
 
+  // 5. Every command must be on the role's list.
   const allowed = policy.readOnlyCommands.concat(rules.bashExtra || []);
-  const segments = bare.split(/&&|\|\||;|\||\n/).map((s) => s.trim()).filter(Boolean);
-  for (let seg of segments) {
-    seg = seg.replace(/^[({]\s*/, "").replace(/\s*[)}]$/, "");
-    while (/^[A-Za-z_][A-Za-z0-9_]*=\S*\s/.test(seg)) seg = seg.replace(/^[A-Za-z_][A-Za-z0-9_]*=\S*\s+/, "");
-    if (!seg) continue;
+  for (const seg of segments) {
     const ok = allowed.some((a) => seg === a || seg.startsWith(a + " "));
     if (!ok) deny(`"${seg.split(/\s+/).slice(0, 3).join(" ")}" isn't on the ${role} command list.`);
   }

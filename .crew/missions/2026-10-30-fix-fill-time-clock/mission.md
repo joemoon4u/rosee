@@ -15,6 +15,8 @@
 | Acceptance tests | test-engineer | GO, 22/22, commit 430e6dc (flight-cards/03) |
 | Security review | security-engineer | NO-GO: unapproved policy.json change (flight-cards/04) |
 | Launch poll | launch-director | NO-GO, release pack on HOLD, commit ef23f9b (flight-cards/05) |
+| Security re-review (9e7de9b) | security-engineer | NO-GO: 2 HIGH bypasses in range-safety.js + MEDIUM test gap (flight-cards/06) |
+| Launch re-poll | launch-director | NO-GO, HOLD, commit bba46b7 (flight-cards/07) |
 
 ## Status log
 - Mission opened. (First attempt via shell was blocked by Range Safety; redone with Write tool.)
@@ -26,7 +28,13 @@
 - Launch poll NO-GO; go-no-go.md and release-notes.md (HOLD) written (ef23f9b).
 - A shell write by the Chief of Staff was blocked by Range Safety; records written with Write tool instead.
 
+- Policy change 9e7de9b approved (a16c3cd). Security re-review: original MEDIUM resolved, but NO-GO on two new HIGH bypasses in range-safety.js (single `&`, `<(...)`) and a MEDIUM test gap (flight-cards/06).
+- Launch re-poll NO-GO, release pack HOLD (bba46b7, flight-cards/07). Guardrail files are Flight Director-owned, so no fix loop was run. Build cycles used: 1 of 3.
+- A shell attempt by the Chief of Staff to save card 07 was blocked by Range Safety (the card text contained a URL-fetching command name); saved with the Write tool instead, no other route tried.
+
 ## Risks
+- BLOCKER: 9e7de9b range-safety.js bypasses (HIGH): `echo x & curl ...` and `cat <(curl ...)` skip the blocked-command rules. Needs a Flight Director fix, a new policy approval, then re-review.
+- Approval commits (310ad93, 9e7de9b, a16c3cd) are authored by Claude noreply; human authorship of the approval lines can't be verified in git.
 - BLOCKER: commit f5cb1d2 loosened blockedCommands in .crew/policy.json with no recorded approval; approvals.md covers design.md Option A only.
 - Out-of-scope follow-ups from design: autofill may fill honeypot (index.html:592); offline-saved request lost on 400/429 at replay.
 - AC-7 is a source check only; test manually in a browser with a changed clock.

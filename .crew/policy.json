@@ -48,11 +48,11 @@
     { "pattern": "(^|[;&|]\\s*)(printenv|env)\\s*($|[;&|])|\\bset\\s*$|\\bexport\\s+-p\\b", "reason": "Dumping environment variables can expose secrets." }
   ],
 
-  "_readersExempt": "A rule marked readersExempt still matches the word anywhere (inside quotes too), except in a command segment that starts with a pure reader below, e.g. 'cat vercel.json' or 'grep -n curl api/book.js'. Readers only print; they can't run what they mention. Added after a false positive (mission 2026-10-30-fix-fill-time-clock, recorder seq 5). rg is deliberately not a reader: rg --pre runs a command.",
-  "readerCommands": ["cat", "head", "tail", "wc", "grep", "ls", "echo", "diff", "file", "stat", "tree", "git diff", "git log", "git show", "git blame", "git ls-files"],
+  "_readersExempt": "A rule marked readersExempt still matches the word anywhere (inside quotes too), except in a command segment that starts with a pure reader below, e.g. 'cat vercel.json' or 'grep -n curl api/book.js'. Readers only print; they can't run what they mention. Added after a false positive (mission 2026-10-30-fix-fill-time-clock, recorder seq 5). rg is not allowed at all: rg --pre runs a command.",
+  "readerCommands": ["cat", "head", "tail", "wc", "grep", "ls", "echo", "diff", "git diff", "git log", "git show", "git blame", "git ls-files"],
 
   "readOnlyCommands": [
-    "ls", "cat", "head", "tail", "wc", "grep", "rg", "find", "sort", "uniq", "diff", "pwd", "echo", "date", "tree", "file", "stat", "cd", "true", "test", "[",
+    "ls", "cat", "head", "tail", "wc", "grep", "find", "sort", "diff", "pwd", "echo", "date", "stat", "cd", "true", "test", "[",
     "git status", "git diff", "git log", "git show", "git branch", "git rev-parse", "git ls-files", "git blame",
     "node --test", "npm test", "npm run test", "node --check"
   ],
@@ -70,7 +70,7 @@
     "responsible-engineer": {
       "write": ["*"],
       "writeDeny": ["tests/acceptance/", ".crew/"],
-      "bashExtra": ["node", "mkdir", "touch", "git add", "git commit", "git switch", "git checkout -b", "git stash"],
+      "bashExtra": ["mkdir", "touch", "git add", "git commit", "git switch", "git checkout -b", "git stash"],
       "allowRedirects": true,
       "gate": { "approvalFile": "approvals.md", "mustContain": "DESIGN: APPROVED" }
     },
